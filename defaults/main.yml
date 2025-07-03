@@ -1,9 +1,9 @@
 ---
 #####
 #
-# @name MyINFRA.eu ~ Ansible <name> Role
-# @version 2025.07-001
-# @since 2025.07-001
+# @name MyINFRA.eu ~ Ansible RouteOS Role
+# @version 2025.07-000.beta1
+# @since 2025.07-000.beta1
 #
 # @copyright (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code
 # @author Dennis de Houx <dennis@dehoux.be>
@@ -11,6 +11,9 @@
 #
 ###
 #
-# Ansible defaults for <name>
+# Ansible defaults for RouterOS
 #
 #####
+
+### Show output from run command
+routeros_show_output: false
