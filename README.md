@@ -14,6 +14,14 @@ Ansible role for RouteOS (mikrotik devices), with this role you are able to conf
 - Manage firewall
 - Execute custom commands
 
+
+## Support us
+
+We invest a lot of resources and time into creating these ansible roles. You can supports us by [sponsoring this project](https://github.com/MyINFRA-eu#sponsorship).
+
+We highly appreciate you mentioning us or our projects on you website, social media, ...
+
+
 ## Statistics
 
 **Releases**
@@ -54,14 +62,6 @@ Ansible role for RouteOS (mikrotik devices), with this role you are able to conf
 **Organisation**
 
 ![GitHub Org's stars](https://img.shields.io/github/stars/MyINFRA-eu?style=for-the-badge)
-
-
-
-## Support us
-
-We invest a lot of resources and time into creating these ansible roles. You can supports us by [sponsoring this project](https://github.com/MyINFRA-eu#sponsorship).
-
-We highly appreciate you mentioning us or our projects on you website, social media, ...
 
 
 ## Requirements
