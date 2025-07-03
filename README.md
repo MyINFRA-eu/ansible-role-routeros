@@ -108,13 +108,13 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 ## Security Vulnerabilities
 
-Please review [our security policy](https://github.com/MyINFRA-eu/<name>/security/policy) on how to report security vulnerabilities.
+Please review [our security policy](https://github.com/MyINFRA-eu/ansible-role-routeros/security/policy) on how to report security vulnerabilities.
 
 
 ## Credits
 
 - [Dennis de houx](https://github.com/Dennis-de-Houx)
-- [All Contributors](https://github.com/MyINFRA-eu/<name>/contributors)
+- [All Contributors](https://github.com/MyINFRA-eu/ansible-role-routeros/contributors)
 
 
 ## Copyright
