@@ -1,6 +1,6 @@
 # MyINFRA.eu Ansible Role: ansible-role-routeros
 
-![MyINFRA.eu logo](https://raw.githubusercontent.com/MyINFRA-eu/.github/main/logo/myinfra-logo-grey.svg)
+[![MyINFRA.eu logo](https://raw.githubusercontent.com/MyINFRA-eu/.github/main/logo/myinfra-logo-grey.svg)](https://myinfra.eu)
 
 
 ## About
