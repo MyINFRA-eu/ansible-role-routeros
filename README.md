@@ -76,11 +76,7 @@ None.
 
 Available variables are listed below, along with default values (see `defaults/main.yml`):
 
-```
-var1: true
-var2: "string"
-var3: []
-```
+Please look at the [documentation](documentation) for more info about the variables per task.
 
 
 ## Dependencies
@@ -95,7 +91,7 @@ None.
   vars_files:
     - vars/main.yml
   roles:
-    - { role: <name> }
+    - { role: Dennis-de-Houx.routeros }
 ```
 
 
