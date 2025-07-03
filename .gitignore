@@ -11,3 +11,12 @@ tmp/
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
+
+# Ansible temp/cache
+*.retry
+*/__pycache__
+*.pyc
+.cache
+
+# Ansible Galaxy Token
+.galaxy-api-token
