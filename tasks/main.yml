@@ -1,9 +1,9 @@
 ---
 #####
 #
-# @name MyINFRA.eu ~ Ansible <name> Role
-# @version 2025.07-001
-# @since 2025.07-001
+# @name MyINFRA.eu ~ Ansible RouterOS Role
+# @version 2025.07-000.beta1
+# @since 2025.07-000.beta1
 #
 # @copyright (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code
 # @author Dennis de Houx <dennis@dehoux.be>
@@ -18,8 +18,8 @@
 - name: "Copyright & Version information"
   ansible.builtin.debug:
     msg:
-      - "MyINFRA.eu ~ Ansible <name> Role"
-      - "Version   : 2025.07-001"
+      - "MyINFRA.eu ~ Ansible RouterOS Role"
+      - "Version   : 2025.07-000.beta1"
       - "Copyright : (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code"
       - "Author    : Dennis de Houx <dennis@dehoux.be>"
       - "License   : https://creativecommons.org/licenses/by-nc-nd/4.0/deed.en CC BY-NC-ND 4.0"
@@ -27,4 +27,19 @@
 - name: "Load: Gather facts tasks"
   ansible.builtin.import_tasks: gather.yml
   tags:
-    - <short_name>_gather_facts
+    - routeros_gather_facts
+
+- name: "Load: Banner tasks"
+  ansible.builtin.import_tasks: banner.yml
+  tags:
+    - routeros_banner
+
+- name: "Load: Logging tasks"
+  ansible.builtin.import_tasks: logging.yml
+  tags:
+    - routeros_logging
+
+- name: "Load: SNMP tasks"
+  ansible.builtin.import_tasks: snmp.yml
+  tags:
+    - routeros_snmp

@@ -1,0 +1,36 @@
+---
+#####
+#
+# @name MyINFRA.eu ~ Ansible RouterOS Role
+# @version 2025.07-000.beta1
+# @since 2025.07-000.beta1
+#
+# @copyright (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code
+# @author Dennis de Houx <dennis@dehoux.be>
+# @license https://creativecommons.org/licenses/by-nc-nd/4.0/deed.en CC BY-NC-ND 4.0
+#
+###
+#
+# Ansible tasks to collect config data from device
+#
+#####
+
+- name: "Gather > Collect all facts from the device"
+  community.routeros.facts:
+    gather_subset: all
+
+- name: "Gather > Show device hostname"
+  ansible.builtin.debug:
+    msg: "{{ ansible_net_hostname }}"
+  when:
+    - routeros_show_output is true
+  tags:
+    - routeros_show_output
+
+- name: "Gather > Show device config"
+  ansible.builtin.debug:
+    msg: "{{ ansible_net_config }}"
+  when:
+    - routeros_show_output is true
+  tags:
+    - routeros_show_output

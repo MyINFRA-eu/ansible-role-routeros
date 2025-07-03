@@ -7,6 +7,10 @@ All notable changes to ansible-role-routeros will be documented in this file.
 ### What's Changed
 
 - Initial version with limited tasks
+- Add gather information task
+- Add banner task (change login note)
+- Add logging task (manage external syslog server)
+- Add snmp task (manage snmp settings and communities)
 
 <!--
 **Full Changelog**: https://github.com/MyINFRA-eu/ansible-role-routeros/compare/<version-new>...<version-previous>

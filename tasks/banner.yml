@@ -1,0 +1,45 @@
+---
+#####
+#
+# @name MyINFRA.eu ~ Ansible RouterOS Role
+# @version 2025.07-000.beta1
+# @since 2025.07-000.beta1
+#
+# @copyright (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code
+# @author Dennis de Houx <dennis@dehoux.be>
+# @license https://creativecommons.org/licenses/by-nc-nd/4.0/deed.en CC BY-NC-ND 4.0
+#
+###
+#
+# Ansible tasks to enable/disable & update note (login banner)
+#
+#####
+
+- name: "Banner > Disable"
+  community.routeros.command:
+    commands:
+      - /system/note set show-at-login=no
+      - /system/note set show-at-cli-login=no
+  register: banner_disabled_output
+  when:
+    - routeros_banner is undefined or (routeros_banner is defined and routeros_banner | length < 1)
+
+- name: "Banner > Enable & update content"
+  community.routeros.command:
+    commands:
+      - /system/note set show-at-login=yes
+      - /system/note set show-at-cli-login=yes
+      - /system/note set note={{ routeros_banner | join() | community.routeros.quote_argument_value }}
+  register: banner_enabled_output
+  when:
+    - routeros_banner is defined and routeros_banner | length > 0
+
+- name: "Banner > Show output"
+  ansible.builtin.debug:
+    msg:
+      - "DISABALED: {{ banner_disabled_output }}"
+      - "ENABLED  : {{ banner_enabled_output }}"
+  when:
+    - routeros_show_output is true
+  tags:
+    - routeros_show_output

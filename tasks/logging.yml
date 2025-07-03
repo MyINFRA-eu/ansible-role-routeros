@@ -1,0 +1,68 @@
+---
+#####
+#
+# @name MyINFRA.eu ~ Ansible RouterOS Role
+# @version 2025.07-000.beta1
+# @since 2025.07-000.beta1
+#
+# @copyright (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code
+# @author Dennis de Houx <dennis@dehoux.be>
+# @license https://creativecommons.org/licenses/by-nc-nd/4.0/deed.en CC BY-NC-ND 4.0
+#
+###
+#
+# Ansible tasks to manage syslog settings
+#
+#####
+
+- name: "Logging > Configure syslog settings"
+  community.routeros.command:
+    commands:
+      - /system/logging remove [find where action=syslog]
+      - /system/logging/action set [find where action=remote] remote={{ routeros_syslog_server | community.routeros.quote_argument_value }}
+      - /system/logging/action remove [find where name=syslog]
+      - /system/logging/action add name=syslog remote={{ routeros_syslog_server | community.routeros.quote_argument_value }} remote-port=514 syslog-facility=local7 syslog-severity=auto target=remote
+      - /system logging add action=syslog disabled=no prefix={{ inventory_hostname }} topics=system,info
+      - /system logging add action=syslog disabled=no prefix={{ inventory_hostname }} topics=warning
+      - /system logging add action=syslog disabled=no prefix={{ inventory_hostname }} topics=critical
+      - /system logging add action=syslog disabled=no prefix={{ inventory_hostname }} topics=error,!bgp,!ospf,!route
+      - /system logging add action=syslog disabled=no prefix={{ inventory_hostname }}_routing topics=bgp,ospf,route
+  register: syslog_logging_output
+  when:
+    - routeros_syslog_server is defined and routeros_syslog_server | length > 0
+
+- name: "Logging > Add firewall rule outbound"
+  ansible.builtin.set_fact:
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'output', 'dst-address-list': 'syslog', 'port': '514', 'protocol': 'udp', 'comment': 'Syslog ~ Outbound'}] }}"
+  register: syslog_firewall_outbound_output
+  when:
+    - routeros_syslog_server is defined and routeros_syslog_server | length > 0
+
+- name: "Logging > Add firewall rule forward"
+  ansible.builtin.set_fact:
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'forward', 'dst-address-list': 'syslog', 'port': '514', 'protocol': 'udp', 'comment': 'Syslog ~ Forward'}] }}"
+  register: syslog_firewall_forward_output
+  when:
+    - routeros_syslog_server is defined and routeros_syslog_server | length > 0
+
+- name: "Logging > Add firewall address-list"
+  ansible.builtin.set_fact:
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'syslog', 'address': routeros_syslog_server, 'comment': 'Syslog Server', 'disabled': 'no'}] }}"
+  register: syslog_firewall_adress_output
+  when:
+    - routeros_syslog_server is defined and routeros_syslog_server | length > 0
+
+- name: "Logging > Show output"
+  ansible.builtin.debug:
+    msg:
+      - "LOGGING       : {{ syslog_logging_output | default('') }}"
+      - "FIREWALL      : {{ syslog_firewall_output | default('') }}"
+      - "FIREWALL OUT  : {{ syslog_firewall_outbound_output | default('') }}"
+      - "FIREWALL FWD  : {{ syslog_firewall_forward_output | default('') }}"
+      - "FIREWALL LIST : {{ syslog_firewall_address_output | default('') }}"
+      - "FIREWALL RULES: {{ routeros_firewall_rules | default('') }}"
+      - "ADDRESS LIST  : {{ routeros_address_list | default('') }}"
+  when:
+    - routeros_show_output is true
+  tags:
+    - routeros_show_output
