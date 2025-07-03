@@ -1,6 +1,9 @@
 # MyINFRA.eu Ansible Role: ansible-role-routeros
 
-![MyINFRA.eu logo](https://raw.githubusercontent.com/MyINFRA-eu/.github/main/logo/myinfra-banner.png)
+![MyINFRA.eu logo](https://raw.githubusercontent.com/MyINFRA-eu/.github/main/logo/myinfra-logo-grey.svg)
+
+
+## About
 
 Ansible role for RouteOS (mikrotik devices), with this role you are able to configure and control the following:
 
