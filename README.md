@@ -2,21 +2,40 @@
 
 ![MyINFRA.eu logo](https://raw.githubusercontent.com/MyINFRA-eu/.github/main/logo/myinfra-banner.png)
 
-![GitHub branch status](https://img.shields.io/github/checks-status/MyINFRA-eu/ansible-role-routeros/main?style=flat)
+Ansible role for RouteOS (mikrotik devices), with this role you are able to configure and control the following:
+
+- Gather information
+- Set note (Login Banner)
+- Manage remote logging
+- Manage SNMP settings
+- Manage services
+- Manage graphing
+- Manage users
+- Manage firewall
+- Execute custom commands
+
+## Statistics
+
+**Releases**
+
 ![GitHub Release](https://img.shields.io/github/v/release/MyINFRA-eu/ansible-role-routeros?style=flat)
 ![GitHub Release Date](https://img.shields.io/github/release-date/MyINFRA-eu/ansible-role-routeros?style=flat)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/MyINFRA-eu/ansible-role-routeros/total?style=flat)
 ![GitHub Downloads (all assets, latest release)](https://img.shields.io/github/downloads/MyINFRA-eu/ansible-role-routeros/latest/total?style=flat)
 
-![GitHub repo file or directory count](https://img.shields.io/github/directory-file-count/MyINFRA-eu/ansible-role-routeros?style=flat)
-![GitHub repo size](https://img.shields.io/github/repo-size/MyINFRA-eu/ansible-role-routeros?style=flat)
-![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/MyINFRA-eu/ansible-role-routeros?style=flat)
+**Commits/Activity**
 
+![GitHub branch status](https://img.shields.io/github/checks-status/MyINFRA-eu/ansible-role-routeros/main?style=flat)
 ![GitHub last commit](https://img.shields.io/github/last-commit/MyINFRA-eu/ansible-role-routeros?style=for-the-badge?style=flat)
 ![GitHub commit activity](https://img.shields.io/github/commit-activity/w/MyINFRA-eu/ansible-role-routeros?style=flat)
 ![GitHub commits since latest release](https://img.shields.io/github/commits-since/MyINFRA-eu/ansible-role-routeros/latest?style=flat)
 ![GitHub contributors](https://img.shields.io/github/contributors/MyINFRA-eu/ansible-role-routeros?style=for-the-badge?style=flat)
 
+**Repository**
+
+![GitHub repo file or directory count](https://img.shields.io/github/directory-file-count/MyINFRA-eu/ansible-role-routeros?style=flat)
+![GitHub repo size](https://img.shields.io/github/repo-size/MyINFRA-eu/ansible-role-routeros?style=flat)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/MyINFRA-eu/ansible-role-routeros?style=flat)
 ![GitHub language count](https://img.shields.io/github/languages/count/MyINFRA-eu/ansible-role-routeros?style=flat)
 ![GitHub top language](https://img.shields.io/github/languages/top/MyINFRA-eu/ansible-role-routeros?style=flat)
 
@@ -36,18 +55,6 @@
 
 ![GitHub Org's stars](https://img.shields.io/github/stars/MyINFRA-eu?style=for-the-badge)
 
-
-Ansible role for RouteOS (mikrotik devices), with this role you are able to configure and control the following:
-
-- Gather information
-- Set note (Login Banner)
-- Manage remote logging
-- Manage SNMP settings
-- Manage services
-- Manage graphing
-- Manage users
-- Manage firewall
-- Execute custom commands
 
 
 ## Support us
