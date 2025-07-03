@@ -1,10 +1,10 @@
-# Gather Tasks
+# Banner Tasks
 
-Gather all information from routeros (mikrotik) devices
+Set the login note (banner) show on routeros (mikrotik) devices
 
 ## Tags
 
-- routeros_gather_facts
+- routeros_banner
 
 ## Settings
 
