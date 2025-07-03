@@ -12,17 +12,17 @@ Set the login note (banner) show on routeros (mikrotik) devices
 
 ```yaml
 routeros_banner:
-  "Welcome to this device"
-  "This device is managed by:"
-  " - User 1"
-  " - User 2"
+  "Welcome to this device \n"
+  "This device is managed by: \n"
+  " - User 1 \n"
+  " - User 2 \n"
 ```
 
 ```json
 routeros_banner: [
-  "Welcome to this device"
-  "This device is managed by:"
-  " - User 1"
-  " - User 2"
+  "Welcome to this device \n"
+  "This device is managed by: \n"
+  " - User 1 \n"
+  " - User 2 \n"
 ]
 ```
