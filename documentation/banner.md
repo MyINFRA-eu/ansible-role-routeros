@@ -19,10 +19,10 @@ routeros_banner:
 ```
 
 ```json
-routeros_banner: [
-  "Welcome to this device \n"
-  "This device is managed by: \n"
-  " - User 1 \n"
+"routeros_banner": [
+  "Welcome to this device \n",
+  "This device is managed by: \n",
+  " - User 1 \n",
   " - User 2 \n"
-]
+],
 ```
