@@ -16,5 +16,17 @@ galaxy_info:
   galaxy_tags:
     - routeros
     - mikrotik
+    - banner
+    - issue
+    - note
+    - logging
+    - syslog
+    - snmp
+    - services
+    - graphing
+    - user
+    - users
     - management
     - firewall
+    - command
+    - cli
