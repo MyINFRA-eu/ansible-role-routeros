@@ -1,0 +1,368 @@
+---
+#####
+#
+# @name MyINFRA.eu ~ Ansible RouterOS Role
+# @version 2025.06-000.beta1
+# @since 2025.06-000.beta1
+#
+# @copyright (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code
+# @author Dennis de Houx <dennis@dehoux.be>
+# @license https://creativecommons.org/licenses/by-nc-nd/4.0/deed.en CC BY-NC-ND 4.0
+#
+###
+#
+# Ansible role to manage services settings.
+#
+#####
+
+- name: "SERVICES > Load default settings"
+  ansible.builtin.set_fact:
+    routeros_services_default_api_enabled: "{{ item.value.api.enabled | default('no') }}"
+    routeros_services_default_api_addresses: "{{ item.value.api.addresses | default([]) }}"
+    routeros_services_default_apissl_enabled: "{{ item.value.apissl.enabled | default('no') }}"
+    routeros_services_default_apissl_addresses: "{{ item.value.apissl.addresses | default([]) }}"
+    routeros_services_default_bwserver_enabled: "{{ item.value.bandwidthserver.enabled | default('no') }}"
+    routeros_services_default_ftp_enabled: "{{ item.value.ftp.enabled | default('no') }}"
+    routeros_services_default_ftp_addresses: "{{ item.value.ftp.addresses | default([]) }}"
+    routeros_services_default_ssh_enabled: "{{ item.value.ssh.enabled | default('yes') }}"
+    routeros_services_default_ssh_addresses: "{{ item.value.ssh.addresses | default([]) }}"
+    routeros_services_default_telnet_enabled: "{{ item.value.telnet.enabled | default('no') }}"
+    routeros_services_default_telnet_addresses: "{{ item.value.telnet.addresses | default([]) }}"
+    routeros_services_default_winbox_enabled: "{{ item.value.winbox.enabled | default('yes') }}"
+    routeros_services_default_winbox_addresses: "{{ item.value.winbox.addresses | default([]) }}"
+    routeros_services_default_www_enabled: "{{ item.value.www.enabled | default('no') }}"
+    routeros_services_default_www_addresses: "{{ item.value.www.addresses | default([]) }}"
+    routeros_services_default_wwwssl_enabled: "{{ item.value.wwwssl.enabled | default('no') }}"
+    routeros_services_default_wwwssl_addresses: "{{ item.value.wwwssl.addresses | default([]) }}"
+  loop: "{{ routeros_services | dict2items }}"
+  vars:
+    hostname: "{{ item.key | default('') }}"
+  when:
+    - hostname == "default"
+    - routeros_services is defined and routeros_services | length > 0
+
+- name: "SERVICES > Load device settings"
+  ansible.builtin.set_fact:
+    routeros_services_api_enabled: "{{ item.value.api.enabled | default(routeros_services_default_api_enabled) }}"
+    routeros_services_api_addresses: "{{ item.value.api.addresses | default(routeros_services_default_api_addresses) }}"
+    routeros_services_apissl_enabled: "{{ item.value.apissl.enabled | default(routeros_services_default_apissl_enabled) }}"
+    routeros_services_apissl_addresses: "{{ item.value.apissl.addresses | default(routeros_services_default_apissl_addresses) }}"
+    routeros_services_bwserver_enabled: "{{ item.value.bandwidthserver.enabled | default(routeros_services_default_bwserver_enabled) }}"
+    routeros_services_ftp_enabled: "{{ item.value.ftp.enabled | default(routeros_services_default_ftp_enabled) }}"
+    routeros_services_ftp_addresses: "{{ item.value.ftp.addresses | default(routeros_services_default_ftp_addresses) }}"
+    routeros_services_ssh_enabled: "{{ item.value.ssh.enabled | default(routeros_services_default_ssh_enabled) }}"
+    routeros_services_ssh_addresses: "{{ item.value.ssh.addresses | default(routeros_services_default_ssh_addresses) }}"
+    routeros_services_telnet_enabled: "{{ item.value.telnet.enabled | default(routeros_services_default_telnet_enabled) }}"
+    routeros_services_telnet_addresses: "{{ item.value.telnet.addresses | default(routeros_services_default_telnet_addresses) }}"
+    routeros_services_winbox_enabled: "{{ item.value.winbox.enabled | default(routeros_services_default_winbox_enabled) }}"
+    routeros_services_winbox_addresses: "{{ item.value.winbox.addresses | default(routeros_services_default_winbox_addresses) }}"
+    routeros_services_www_enabled: "{{ item.value.www.enabled | default(routeros_services_default_www_enabled) }}"
+    routeros_services_www_addresses: "{{ item.value.www.addresses | default(routeros_services_default_www_addresses) }}"
+    routeros_services_wwwssl_enabled: "{{ item.value.wwwssl.enabled | default(routeros_services_default_wwwssl_enabled) }}"
+    routeros_services_wwwssl_addresses: "{{ item.value.wwwssl.addresses | default(routeros_services_default_wwwssl_addresses) }}"
+  loop: "{{ routeros_services | dict2items }}"
+  vars:
+    hostname: "{{ item.key | default('') }}"
+  when:
+    - hostname != "default"
+    - hostname == ansible_net_hostname
+    - routeros_services is defined and routeros_services | length > 0
+
+### API Service
+- name: "SERVICES > Disable api service"
+  community.routeros.command:
+    commands:
+      - /ip/service disable api
+  register: routeros_service_api_output
+  when:
+    - routeros_services_api_enabled is false
+    - routeros_services is defined and routeros_services | length > 0
+
+- name: "SERVICES > Enable api service"
+  community.routeros.command:
+    commands:
+      - /ip/service enable api
+      - /ip/service set api address={{ routeros_services_api_addresses | join(',') | community.routeros.quote_argument_value }}
+  register: routeros_service_api_output
+  when:
+    - routeros_services_api_enabled is true
+    - routeros_services is defined and routeros_services | length > 0
+
+- name: "SERVICES > Add firewall rule for api service"
+  ansible.builtin.set_fact:
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src-address-list': 'api', 'port': '8728', 'protocol': 'tcp', 'comment': 'API Service ~ Inbound'}] }}"
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'api', 'address': address, 'disabled': 'no', 'comment': 'API Service - Automatic added'}] }}"
+  vars:
+    address: "{{ routeros_services_api_addresses | default(['0.0.0.0/0']) | join(',')  }}"
+  register: routeros_service_api_fw_output
+  when:
+    - routeros_services_api_enabled is true
+    - routeros_services is defined and routeros_services | length > 0
+
+### API-SSL Service
+- name: "SERVICES > Disable api-ssl service"
+  community.routeros.command:
+    commands:
+      - /ip/service disable api-ssl
+  register: routeros_service_apissl_output
+  when:
+    - routeros_services_apissl_enabled is false
+    - routeros_services is defined and routeros_services | length > 0
+
+- name: "SERVICES > Enable api-ssl service"
+  community.routeros.command:
+    commands:
+      - /ip/service enable api-ssl
+      - /ip/service set api-ssl address={{ routeros_services_apissl_addresses | join(',') | community.routeros.quote_argument_value }}
+  register: routeros_service_apissl_output
+  when:
+    - routeros_services_apissl_enabled is true
+    - routeros_services is defined and routeros_services | length > 0
+
+- name: "SERVICES > Add firewall rule for api-ssl service"
+  ansible.builtin.set_fact:
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src-address-list': 'api-ssl', 'port': '8729', 'protocol': 'tcp', 'comment': 'API-SSL Service ~ Inbound'}] }}"
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'api-ssl', 'address': address, 'disabled': 'no', 'comment': 'API-SSL Service - Automatic added'}] }}"
+  vars:
+    address: "{{ routeros_services_apissl_addresses | default(['0.0.0.0/0']) | join(',')  }}"
+  register: routeros_service_apissl_fw_output
+  when:
+    - routeros_services_apissl_enabled is true
+    - routeros_services is defined and routeros_services | length > 0
+
+### Bandwidth Test Server
+- name: "SERVICES > Disable bandwidth test server"
+  community.routeros.command:
+    commands:
+      - /tool/bandwidth-server set enabled=no
+  register: routeros_service_bwserver_output
+  when:
+    - routeros_services_bwserver_enabled is false
+    - routeros_services is defined and routeros_services | length > 0
+
+- name: "SERVICES > Enable bandwidth test server"
+  community.routeros.command:
+    commands:
+      - /tool/bandwidth-server set enabled=yes
+  register: routeros_service_bwserver_output
+  when:
+    - routeros_services_bwserver_enabled is true
+    - routeros_services is defined and routeros_services | length > 0
+
+### FTP Service
+- name: "SERVICES > Disable ftp service"
+  community.routeros.command:
+    commands:
+      - /ip/service disable ftp
+  register: routeros_service_ftp_output
+  when:
+    - routeros_services_ftp_enabled is false
+    - routeros_services is defined and routeros_services | length > 0
+
+- name: "SERVICES > Enable ftp service"
+  community.routeros.command:
+    commands:
+      - /ip/service enable ftp
+      - /ip/service set ftp address={{ routeros_services_ftp_addresses | join(',') | community.routeros.quote_argument_value }}
+  register: routeros_service_ftp_output
+  when:
+    - routeros_services_ftp_enabled is true
+    - routeros_services is defined and routeros_services | length > 0
+
+- name: "SERVICES > Add firewall rule for ftp service"
+  ansible.builtin.set_fact:
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src-address-list': 'ftp', 'port': '21', 'protocol': 'tcp', 'comment': 'FTP Service ~ Inbound'}] }}"
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'ftp', 'address': address, 'disabled': 'no', 'comment': 'FTP Service - Automatic added'}] }}"
+  vars:
+    address: "{{ routeros_services_ftp_addresses | default(['0.0.0.0/0']) | join(',')  }}"
+  register: routeros_service_ftp_fw_output
+  when:
+    - routeros_services_ftp_enabled is true
+    - routeros_services is defined and routeros_services | length > 0
+
+### SSH Service
+- name: "SERVICES > Disable ssh service"
+  community.routeros.command:
+    commands:
+      - /ip/service disable ssh
+  register: routeros_service_ssh_output
+  when:
+    - routeros_services_ssh_enabled is false
+    - routeros_services is defined and routeros_services | length > 0
+
+- name: "SERVICES > Enable ssh service"
+  community.routeros.command:
+    commands:
+      - /ip/service enable ssh
+      - /ip/service set ssh address={{ routeros_services_ssh_addresses | join(',') | community.routeros.quote_argument_value }}
+  register: routeros_service_ssh_output
+  when:
+    - routeros_services_ssh_enabled is true
+    - routeros_services is defined and routeros_services | length > 0
+
+- name: "SERVICES > Add firewall rule for ssh service"
+  ansible.builtin.set_fact:
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src-address-list': 'ssh', 'port': '22', 'protocol': 'tcp', 'comment': 'SSH Service ~ Inbound'}] }}"
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'ssh', 'address': address, 'disabled': 'no', 'comment': 'Winbox Service - Automatic added'}] }}"
+  vars:
+    address: "{{ routeros_services_ssh_addresses | default(['0.0.0.0/0']) | join(',')  }}"
+  register: routeros_service_ssh_fw_output
+  when:
+    - routeros_services_ssh_enabled is true
+    - routeros_services is defined and routeros_services | length > 0
+
+### Telnet Service
+- name: "SERVICES > Disable telnet service"
+  community.routeros.command:
+    commands:
+      - /ip/service disable telnet
+  register: routeros_service_telnet_output
+  when:
+    - routeros_services_telnet_enabled is false
+    - routeros_services is defined and routeros_services | length > 0
+
+- name: "SERVICES > Enable telnet service"
+  community.routeros.command:
+    commands:
+      - /ip/service enable telnet
+      - /ip/service set telnet address={{ routeros_services_telnet_addresses | join(',') | community.routeros.quote_argument_value }}
+  register: routeros_service_telnet_output
+  when:
+    - routeros_services_telnet_enabled is true
+    - routeros_services is defined and routeros_services | length > 0
+
+- name: "SERVICES > Add firewall rule for telnet service"
+  ansible.builtin.set_fact:
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src-address-list': 'telnet', 'port': '23', 'protocol': 'tcp', 'comment': 'Telnet Service ~ Inbound'}] }}"
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'telnet', 'address': address, 'disabled': 'no', 'comment': 'Telnet Service - Automatic added'}] }}"
+  vars:
+    address: "{{ routeros_services_telnet_addresses | default(['0.0.0.0/0']) | join(',')  }}"
+  register: routeros_service_telnet_fw_output
+  when:
+    - routeros_services_telnet_enabled is true
+    - routeros_services is defined and routeros_services | length > 0
+
+### Winbox Service
+- name: "SERVICES > Disable winbox service"
+  community.routeros.command:
+    commands:
+      - /ip/service disable winbox
+  register: routeros_service_winbox_output
+  when:
+    - routeros_services_winbox_enabled is false
+    - routeros_services is defined and routeros_services | length > 0
+
+- name: "SERVICES > Enable winbox service"
+  community.routeros.command:
+    commands:
+      - /ip/service enable winbox
+      - /ip/service set winbox address={{ routeros_services_winbox_addresses | join(',') | community.routeros.quote_argument_value }}
+  register: routeros_service_winbox_output
+  when:
+    - routeros_services_winbox_enabled is true
+    - routeros_services is defined and routeros_services | length > 0
+
+- name: "SERVICES > Add firewall rule for winbox service"
+  ansible.builtin.set_fact:
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src-address-list': 'winbox', 'port': '8291', 'protocol': 'tcp', 'comment': 'Winbox Service ~ Inbound'}] }}"
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'winbox', 'address': address, 'disabled': 'no', 'comment': 'Winbox Service - Automatic added'}] }}"
+  vars:
+    address: "{{ routeros_services_winbox_addresses | default(['0.0.0.0/0']) | join(',')  }}"
+  register: routeros_service_winbox_fw_output
+  when:
+    - routeros_services_winbox_enabled is true
+    - routeros_services is defined and routeros_services | length > 0
+
+### WWW Service
+- name: "SERVICES > Disable www service"
+  community.routeros.command:
+    commands:
+      - /ip/service disable www
+  register: routeros_service_www_output
+  when:
+    - routeros_services_www_enabled is false
+    - routeros_services is defined and routeros_services | length > 0
+
+- name: "SERVICES > Enable www service"
+  community.routeros.command:
+    commands:
+      - /ip/service enable www
+      - /ip/service set www address={{ routeros_services_www_addresses | join(',') | community.routeros.quote_argument_value }}
+  register: routeros_service_www_output
+  when:
+    - routeros_services_www_enabled is true
+    - routeros_services is defined and routeros_services | length > 0
+
+- name: "SERVICES > Add firewall rule for www service"
+  ansible.builtin.set_fact:
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src-address-list': 'www', 'port': '80', 'protocol': 'tcp', 'comment': 'WWW Service ~ Inbound'}] }}"
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'www', 'address': address, 'disabled': 'no', 'comment': 'WWW Service - Automatic added'}] }}"
+  vars:
+    address: "{{ routeros_services_www_addresses | default(['0.0.0.0/0']) | join(',')  }}"
+  register: routeros_service_www_fw_output
+  when:
+    - routeros_services_www_enabled is true
+    - routeros_services is defined and routeros_services | length > 0
+
+### WWW-SSL Service
+- name: "SERVICES > Disable www-ssl service"
+  community.routeros.command:
+    commands:
+      - /ip/service disable www-ssl
+  register: routeros_service_wwwssl_output
+  when:
+    - routeros_services_wwwssl_enabled is false
+    - routeros_services is defined and routeros_services | length > 0
+
+- name: "SERVICES > Enable www-ssl service"
+  community.routeros.command:
+    commands:
+      - /ip/service enable www-ssl
+      - /ip/service set www-ssl address={{ routeros_services_wwwssl_addresses | join(',') | community.routeros.quote_argument_value }}
+  register: routeros_service_wwwssl_output
+  when:
+    - routeros_services_wwwssl_enabled is true
+    - routeros_services is defined and routeros_services | length > 0
+
+- name: "SERVICES > Add firewall rule for www-ssl service"
+  ansible.builtin.set_fact:
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src-address-list': 'www-ssl', 'port': '443', 'protocol': 'tcp', 'comment': 'WWW-SSL Service ~ Inbound'}] }}"
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'www-ssl', 'address': address, 'disabled': 'no', 'comment': 'WWW-SSL Service - Automatic added'}] }}"
+  vars:
+    address: "{{ routeros_services_wwwssl_addresses | default(['0.0.0.0/0']) | join(',')  }}"
+  register: routeros_service_wwwssl_fw_output
+  when:
+    - routeros_services_wwwssl_enabled is true
+    - routeros_services is defined and routeros_services | length > 0
+
+### Show Output
+- name: "SERVICES > Show output"
+  ansible.builtin.debug:
+    msg:
+      - "*** SERVICES ***"
+      - "API      : {{ routeros_services_api_output | default('') }}"
+      - "API-SSL  : {{ routeros_services_apissl_output | default('') }}"
+      - "BW SERVER: {{ routeros_services_bwserver_output | default('') }}"
+      - "FTP      : {{ routeros_services_ftp_output | default('') }}"
+      - "SSH      : {{ routeros_services_ssh_output | default('') }}"
+      - "TELNET   : {{ routeros_services_telnet_output | default('') }}"
+      - "WINBOX   : {{ routeros_services_winbox_output | default('') }}"
+      - "WWW      : {{ routeros_services_www_output | default('') }}"
+      - "WWW-SSL  : {{ routeros_services_wwwssl_output | default('') }}"
+      - " "
+      - "*** FIREWALL ***"
+      - "API      : {{ routeros_services_api_fw_output | default('') }}"
+      - "API-SSL  : {{ routeros_services_apissl_fw_output | default('') }}"
+      - "BW SERVER: {{ routeros_services_bwserver_fw_output | default('') }}"
+      - "FTP      : {{ routeros_services_ftp_fw_output | default('') }}"
+      - "SSH      : {{ routeros_services_ssh_fw_output | default('') }}"
+      - "TELNET   : {{ routeros_services_telnet_fw_output | default('') }}"
+      - "WINBOX   : {{ routeros_services_winbox_fw_output | default('') }}"
+      - "WWW      : {{ routeros_services_www_fw_output | default('') }}"
+      - "WWW-SSL  : {{ routeros_services_wwwssl_fw_output | default('') }}"
+      - "RULES    : {{ routeros_firewall_rules | default('') }}"
+      - "ADDR LIST: {{ routeros_address_list | default('') }}"
+  when:
+    - routeros_show_output is true
+  tags:
+    - routeros_show_output

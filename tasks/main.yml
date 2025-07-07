@@ -43,3 +43,8 @@
   ansible.builtin.import_tasks: snmp.yml
   tags:
     - routeros_snmp
+
+- name: "Load: Services tasks"
+  ansible.builtin.import_tasks: services.yml
+  tags:
+    - routeros_services
