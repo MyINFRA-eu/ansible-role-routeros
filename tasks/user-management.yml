@@ -1,0 +1,266 @@
+---
+#####
+#
+# @name MyINFRA.eu ~ Ansible RouterOS Role
+# @version 2025.06-000.beta1
+# @since 2025.06-000.beta1
+#
+# @copyright (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code
+# @author Dennis de Houx <dennis@dehoux.be>
+# @license https://creativecommons.org/licenses/by-nc-nd/4.0/deed.en CC BY-NC-ND 4.0
+#
+###
+#
+# Ansible role to manage groups and users.
+#
+#####
+
+###
+### Pre requirements on host
+##############################
+
+#- name: "USERS > Install required packages on host machine"
+#  raw: sudo apt update -y && sudo apt install python3-scp -y
+#  when:
+#    #- ansible_os_family == 'Debian'
+#    - routeros_users is defined and routeros_users | length > 0
+
+###
+### Group management
+##############################
+
+- name: "GROUPS > Load default settings"
+  ansible.builtin.set_fact:
+    routeros_groups_data: "{{ routeros_groups_data | default({}) | combine(group_data) }}"
+  loop: "{{ routeros_groups | dict2items }}"
+  vars:
+    hostname: "{{ item.key | default('') }}"
+    group_data: "{{ item.value }}"
+  when:
+    - hostname == "default"
+    - routeros_groups is defined and routeros_groups | length > 0
+
+- name: "GROUPS > Load device settings"
+  ansible.builtin.set_fact:
+    routeros_groups_data: "{{ routeros_groups_data | default({}) | combine(group_data) }}"
+  loop: "{{ routeros_groups | dict2items }}"
+  vars:
+    hostname: "{{ item.key | default('default') }}"
+    group_data: "{{ item.value }}"
+  when:
+    - hostname != "default"
+    - hostname == ansible_net_hostname
+    - routeros_groups is defined and routeros_groups | length > 0
+
+- name: "GROUPS > Add groups on the device"
+  community.routeros.command:
+    commands:
+      - /user/group remove [find where name={{ group }}]
+      - /user/group add name={{ group }} comment={{ comment }} policy={{ policy }}
+  loop: "{{ routeros_groups_data | dict2items }}"
+  vars:
+    group: "{{ item.key | community.routeros.quote_argument_value }}"
+    comment: "{{ item.value.comment | default('') | community.routeros.quote_argument_value }}"
+    policy: "{{ item.value.policy | default('read') | community.routeros.quote_argument_value }}"
+    remove: "{{ item.value.remove | default(false) }}"
+  register: groups_add_output
+  when:
+    - remove is false
+    - routeros_groups is defined and routeros_groups | length > 0
+
+- name: "GROUPS > Remove groups from the device"
+  community.routeros.command:
+    commands:
+      - /user/group remove [find where name={{ group }}]
+  loop: "{{ routeros_groups_data | dict2items }}"
+  vars:
+    group: "{{ item.key | community.routeros.quote_argument_value }}"
+    remove: "{{ item.value.remove | default(false) }}"
+  register: groups_remove_output
+  when:
+    - remove is true
+    - routeros_groups is defined and routeros_groups | length > 0
+
+###
+### Show Groups Output
+##############################
+
+- name: "GROUPS > Show output"
+  ansible.builtin.debug:
+    msg:
+      - "ADD   : {{ groups_add_output }}"
+      - "REMOVE: {{ groups_remove_output }}"
+  when:
+    - routeros_show_output is true
+  tags:
+    - routeros_show_output
+
+###
+### User management
+##############################
+
+- name: "USERS > Load default settings"
+  ansible.builtin.set_fact:
+    routeros_users_data: "{{ routeros_users_data | default({}) | combine(user_data) }}"
+  loop: "{{ routeros_users | dict2items }}"
+  vars:
+    hostname: "{{ item.key | default('') }}"
+    user_data: "{{ item.value }}"
+  when:
+    - hostname == "default"
+    - routeros_users is defined and routeros_users | length > 0
+
+- name: "USERS > Load device settings"
+  ansible.builtin.set_fact:
+    routeros_users_data: "{{ routeros_users_data | default({}) | combine(user_data) }}"
+  loop: "{{ routeros_users | dict2items }}"
+  vars:
+    hostname: "{{ item.key | default('default') }}"
+    user_data: "{{ item.value }}"
+  when:
+    - hostname != "default"
+    - hostname == ansible_net_hostname
+    - routeros_users is defined and routeros_users | length > 0
+
+- name: "USERS > Add ssh keys on the device"
+  ansible.netcommon.net_put:
+    src: "templates/file_content.j2"
+    dest: "{{ filename }}"
+    mode: text
+  loop: "{{ routeros_users_data | dict2items }}"
+  vars:
+    filename: "./{{ item.key }}.pub"
+    content: "{{ item.value.ssh_keys | default('') | join('\n') }}"
+    remove: "{{ item.value.remove | default(false) }}"
+  register: sshkey_add_output
+  when:
+    - remove is false
+    - content is defined and content | length > 0
+    - routeros_users is defined and routeros_users | length > 0
+
+- name: "USERS > Add users on the device"
+  community.routeros.command:
+    commands:
+      - /user remove [find where name={{ user }}]
+      - /user add name={{ user }} group={{ group }} address={{ address }} disabled={{ disabled }} comment={{ comment }} password={{ password }}
+  #      - /user/add name={{ item.user | community.routeros.quote_argument_value }} group={{ item.group | community.routeros.quote_argument_value }} address={{ item.allowed_address | join(',') | community.routeros.quote_argument_value }} comment={{ item.comment | community.routeros.quote_argument_value | default('') }} disabled={{ item.disabled | community.routeros.quote_argument_value | default('yes') }} password=""
+  loop: "{{ routeros_users_data | dict2items }}"
+  vars:
+    user: "{{ item.key | community.routeros.quote_argument_value }}"
+    group: "{{ item.value.group | default('read') | community.routeros.quote_argument_value }}"
+    address: "{{ item.value.allowed_address | default([]) | join(',') | community.routeros.quote_argument_value }}"
+    disabled: "{{ item.value.disabled | default('yes') | community.routeros.quote_argument_value }}"
+    comment: "{{ item.value.comment | default('') | community.routeros.quote_argument_value }}"
+    password: "{{ item.value.password | default('') | community.routeros.quote_argument_value }}"
+    remove: "{{ item.value.remove | default(false) }}"
+  register: users_add_output
+  when:
+    - remove is false
+    - routeros_users is defined and routeros_users | length > 0
+
+- name: "USERS > Enable ssh keys for user"
+  community.routeros.command:
+    commands:
+      - /user/ssh-key remove [find where user={{ user }}]
+      - /user/ssh-key import user={{ user }} key-owner={{ user }} public-key-file={{ filename | community.routeros.quote_argument_value }}
+      #- /user/ssh-key add user={{ user }} key={{ filename | community.routeros.quote_argument_value }} comment={{ comment }}
+  loop: "{{ routeros_users_data | dict2items }}"
+  vars:
+    user: "{{ item.key | community.routeros.quote_argument_value }}"
+    comment: "{{ item.value.comment | default('') | community.routeros.quote_argument_value }}"
+    filename: "{{ item.key }}.pub"
+    remove: "{{ item.value.remove | default(false) }}"
+  register: sshkey_enable_output
+  when:
+    - remove is false
+    - routeros_users is defined and routeros_users | length > 0
+
+- name: "USERS > Remove ssh keys on the device"
+  community.routeros.command:
+    commands:
+      - /file remove [find where name={{ filename | community.routeros.quote_argument_value }}]
+      - /user/ssh-key remove [find where user={{ user }}]
+  loop: "{{ routeros_users_data | dict2items }}"
+  vars:
+    user: "{{ item.key | community.routeros.quote_argument_value }}"
+    filename: "{{ item.key }}.pub"
+    remove: "{{ item.value.remove | default(false) }}"
+  register: sshkey_remove_output
+  when:
+    - remove is true
+    - routeros_users is defined and routeros_users | length > 0
+
+- name: "USERS > Remove users from the device"
+  community.routeros.command:
+    commands:
+      - /user remove [find where name={{ user }}]
+  loop: "{{ routeros_users_data | dict2items }}"
+  vars:
+    user: "{{ item.key | community.routeros.quote_argument_value }}"
+    remove: "{{ item.value.remove | default(false) }}"
+  register: users_remove_output
+  when:
+    - remove is true
+    - routeros_users is defined and routeros_users | length > 0
+
+###
+### Firewall management
+##############################
+
+- name: "USERS > Add firewall rules - Inbound"
+  ansible.builtin.set_fact:
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src-address-list': 'Management', 'comment': 'Management users ~ Inbound'}] }}"
+  register: users_firewall_in_output
+  when:
+    - routeros_users is defined and routeros_users | length > 0
+
+- name: "USERS > Add firewall rules - Forward"
+  ansible.builtin.set_fact:
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'forward', 'src-address-list': 'Management', 'comment': 'Management users ~ Forward'}] }}"
+  register: users_firewall_fwd_output
+  when:
+    - routeros_users is defined and routeros_users | length > 0
+
+- name: "USERS > Add firewall rules - Outbound"
+  ansible.builtin.set_fact:
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'output', 'dst-address-list': 'Management', 'comment': 'Management users ~ Outbound'}] }}"
+  register: users_firewall_out_output
+  when:
+    - routeros_users is defined and routeros_users | length > 0
+
+- name: "USERS > Add firewall address-list"
+  ansible.builtin.set_fact:
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'Management', 'address': addresses, 'comment': 'Management user - ' + user + ' (' + comment + ')', 'disabled': disabled}] }}"
+  loop: "{{ routeros_users_data | dict2items }}"
+  vars:
+    user: "{{ item.key | community.routeros.quote_argument_value }}"
+    addresses: "{{ item.value.allowed_address | default([]) | join(',') | community.routeros.quote_argument_value }}"
+    disabled: "{{ item.value.disabled | default('yes') | community.routeros.quote_argument_value }}"
+    comment: "{{ item.value.comment | default('') | community.routeros.quote_argument_value }}"
+    remove: "{{ item.value.remove | default(false) }}"
+  register: users_address_list_output
+  when:
+    - remove is false
+    - routeros_users is defined and routeros_users | length > 0
+
+###
+### Show Users Output
+##############################
+
+- name: "USERS > Show output"
+  ansible.builtin.debug:
+    msg:
+      - "USER ADD      : {{ users_add_output | default('') }}"
+      - "USER REMOVE   : {{ users_remove_output | default('') }}"
+      - "SSHKEY ADD    : {{ sshkey_add_output | default('') }}"
+      - "SSHKEY ENABLE : {{ sshkey_enable_output | default('') }}"
+      - "SSHKEY REMOVE : {{ sshkey_remove_output | default('') }}"
+      - "FIREWALL IN   : {{ users_firewall_in_output | default('') }}"
+      - "FIREWALL FWD  : {{ users_firewall_fwd_output | default('') }}"
+      - "FIREWALL OUT  : {{ users_firewall_out_output | default('') }}"
+      - "FIREWALL RULES: {{ routeros_firewall_rules | default('') }}"
+      - "ADDRESS LIST  : {{ routeros_address_list | default('') }}"
+  when:
+    - routeros_show_output is true
+  tags:
+    - routeros_show_output
