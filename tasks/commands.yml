@@ -1,0 +1,60 @@
+---
+#####
+#
+# @name MyINFRA.eu ~ Ansible RouterOS Role
+# @version 2025.06-000.beta1
+# @since 2025.06-000.beta1
+#
+# @copyright (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code
+# @author Dennis de Houx <dennis@dehoux.be>
+# @license https://creativecommons.org/licenses/by-nc-nd/4.0/deed.en CC BY-NC-ND 4.0
+#
+###
+#
+# Ansible role to run custom commands.
+#
+#####
+
+- name: "COMMANDS > Load default commands"
+  ansible.builtin.set_fact:
+    routeros_commands_data: "{{ routeros_commands_data | default([]) + commands_data }}"
+  loop: "{{ routeros_commands | dict2items }}"
+  vars:
+    hostname: "{{ item.key | default('') }}"
+    commands_data: "{{ item.value.commands }}"
+  when:
+    - hostname == "default"
+    - routeros_commands is defined and routeros_commands | length > 0
+
+- name: "COMMANDS > Load device commands"
+  ansible.builtin.set_fact:
+    routeros_commands_data: "{{ routeros_commands_data | default([]) + commands_data }}"
+  loop: "{{ routeros_commands | dict2items }}"
+  vars:
+    hostname: "{{ item.key | default('default') }}"
+    commands_data: "{{ item.value.commands }}"
+  when:
+    - hostname != "default"
+    - hostname == ansible_net_hostname
+    - routeros_commands is defined and routeros_commands | length > 0
+
+- name: "COMMANDS > Run commands on device"
+  community.routeros.command:
+    commands:
+      - "{{ command }}"
+  loop: "{{ routeros_commands_data }}"
+  vars:
+    command: "{{ item }}"
+  register: commands_run_output
+  when:
+    - routeros_commands_data is defined and routeros_commands_data | length > 0
+    - routeros_commands is defined and routeros_commands | length > 0
+
+- name: "COMMANDS > Show output"
+  ansible.builtin.debug:
+    msg:
+      - "COMMANDS : {{ commands_run_output | default('') }}"
+  when:
+    - routeros_show_output is true
+  tags:
+    - routeros_show_output
