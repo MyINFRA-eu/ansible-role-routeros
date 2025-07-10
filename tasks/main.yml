@@ -53,3 +53,8 @@
   ansible.builtin.import_tasks: user-management.yml
   tags:
     - routeros_user_management
+
+- name: "Load: Custom commands tasks"
+  ansible.builtin.import_tasks: commands.yml
+  tags:
+    - routeros_custom_commands
