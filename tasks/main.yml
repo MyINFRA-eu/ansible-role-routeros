@@ -48,3 +48,8 @@
   ansible.builtin.import_tasks: services.yml
   tags:
     - routeros_services
+
+- name: "Load: User management tasks"
+  ansible.builtin.import_tasks: user-management.yml
+  tags:
+    - routeros_user_management
