@@ -64,8 +64,8 @@
       - /ip/firewall/address-list remove [find where list={{ list }}]
   loop: "{{ routeros_address_list }}"
   vars:
-    list: "{{ item.0.list | default('') | community.routeros.quote_argument_value }}"
-    enabled: "{{ item.0.enabled | default('yes') }}"
+    list: "{{ item.list | default('') | community.routeros.quote_argument_value }}"
+    enabled: "{{ item.enabled | default('yes') }}"
   register: address_list_remove_output
   when:
     - enabled is true
@@ -76,7 +76,7 @@
   community.routeros.command:
     commands:
       - /ip/firewall/address-list add list={{ list }} address={{ item.1 }} comment={{ comment }}
-  loop: "{{ routeros_address_list | subelements('address') }}"
+  loop: "{{ routeros_address_list | default([]) | subelements('address') }}"
   vars:
     list: "{{ item.0.list | default('') | community.routeros.quote_argument_value }}"
     #address: "{{ item.0.address | default('') | community.routeros.quote_argument_value }}"
@@ -139,8 +139,8 @@
       - /ipv6/firewall/address-list remove [find where list={{ list }}]
   loop: "{{ routeros_address_list6 }}"
   vars:
-    list: "{{ item.0.list | default('') | community.routeros.quote_argument_value }}"
-    enabled: "{{ item.0.enabled | default('yes') }}"
+    list: "{{ item.list | default('') | community.routeros.quote_argument_value }}"
+    enabled: "{{ item.enabled | default('yes') }}"
   register: address_list6_remove_output
   when:
     - enabled is true
@@ -151,7 +151,7 @@
   community.routeros.command:
     commands:
       - /ipv6/firewall/address-list add list={{ list }} address={{ item.1 }} comment={{ comment }}
-  loop: "{{ routeros_address_list6 | subelements('address') }}"
+  loop: "{{ routeros_address_list6 | default([]) | subelements('address') }}"
   vars:
     list: "{{ item.0.list | default('') | community.routeros.quote_argument_value }}"
     #address: "{{ item.0.address | default('') | community.routeros.quote_argument_value }}"
