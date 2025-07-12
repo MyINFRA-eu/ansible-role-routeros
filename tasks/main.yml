@@ -29,6 +29,12 @@
   tags:
     - routeros_gather_facts
 
+- name: "Enable Safe Mode"
+  community.routeros.command:
+    commands:
+      - /safe-mode/take
+  when: routeros_safe_mode is defined and routeros_safe_mode is true
+
 - name: "Load: Banner tasks"
   ansible.builtin.import_tasks: banner.yml
   tags:
@@ -58,3 +64,9 @@
   ansible.builtin.import_tasks: commands.yml
   tags:
     - routeros_custom_commands
+
+- name: "Release Safe Mode"
+  community.routeros.command:
+    commands:
+      - /safe-mode/release
+  when: routeros_safe_mode is defined and routeros_safe_mode is true
