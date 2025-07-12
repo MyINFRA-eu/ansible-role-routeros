@@ -56,7 +56,7 @@
       - /snmp/community set [find where name=public] disabled=yes
   register: routeros_snmp_public_community_output
   when:
-    - routeros_snmp_enabled
+    - routeros_snmp_enabled is defined and routeros_snmp is true
     - routeros_snmp is defined and routeros_snmp | length > 0
 
 - name: "SNMP > Configure communities"
