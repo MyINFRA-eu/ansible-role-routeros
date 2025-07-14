@@ -56,17 +56,17 @@
       - /snmp/community set [find where name=public] disabled=yes
   register: routeros_snmp_public_community_output
   when:
-    - routeros_snmp_enabled is defined and routeros_snmp is true
+    - routeros_snmp_enabled is defined and routeros_snmp_enabled is true
     - routeros_snmp is defined and routeros_snmp | length > 0
 
 - name: "SNMP > Configure communities"
   community.routeros.command:
     commands:
-      - /snmp/community remove [find where name={{ name }}]
-      - /snmp/community add name={{ name }} addresses={{ addresses | default('0.0.0.0/0') }} disabled={{ disabled | default('no') }} comment={{ comment | default('""') }} read-access={{ read_access | default('yes') }} write-access={{ write_access | default('no') }} security={{ security | default('none') }} encryption-password={{ enc_pwd | default('""') }} encryption-protocol={{ enc_prot | default('AES') }} authentication-password={{ auth_pwd | default('""') }} authentication-protocol={{ auth_prot | default('SHA1') }}
+      - /snmp/community remove [find where name={{ comname }}]
+      - /snmp/community add name={{ comname }} addresses={{ addresses | default('0.0.0.0/0') }} disabled={{ disabled | default('no') }} comment={{ comment | default('""') }} read-access={{ read_access | default('yes') }} write-access={{ write_access | default('no') }} security={{ security | default('none') }} encryption-password={{ enc_pwd | default('""') }} encryption-protocol={{ enc_prot | default('AES') }} authentication-password={{ auth_pwd | default('""') }} authentication-protocol={{ auth_prot | default('SHA1') }}
   with_items: "{{ routeros_snmp_communities }}"
   vars:
-    name: "{{ item.key | community.routeros.quote_argument_value }}"
+    comname: "{{ item.key | community.routeros.quote_argument_value }}"
     comment: "{{ item.value.comment | community.routeros.quote_argument_value }}"
     disabled: "{{ item.value.disabled | community.routeros.quote_argument_value }}"
     addresses: "{{ item.value.addresses | join(',') | community.routeros.quote_argument_value }}"
@@ -91,64 +91,118 @@
     - routeros_snmp_enabled
     - routeros_snmp is defined and routeros_snmp | length > 0
 
-- name: "SNMP > Add firewall rule inbound (udp)"
+- name: "SNMP > Add firewall rules"
   ansible.builtin.set_fact:
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'dst-address-list': 'snmp', 'port': '161', 'protocol': 'udp', 'comment': 'SNMP ~ Inbound'}] }}"
-  register: snmp_firewall_inbound_udp_output
-  when:
-    - routeros_snmp_enabled
-    - routeros_snmp is defined and routeros_snmp | length > 0
-
-- name: "SNMP > Add firewall rule inbound (tcp)"
-  ansible.builtin.set_fact:
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'dst-address-list': 'snmp', 'port': '161', 'protocol': 'tcp', 'comment': 'SNMP ~ Inbound'}] }}"
-  register: snmp_firewall_inbound_tcp_output
-  when:
-    - routeros_snmp_enabled
-    - routeros_snmp is defined and routeros_snmp | length > 0
-
-- name: "SNMP > Add firewall rule outbound (udp)"
-  ansible.builtin.set_fact:
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'output', 'dst-address-list': 'snmp', 'port': '161', 'protocol': 'udp', 'comment': 'SNMP ~ Outbound'}] }}"
-  register: snmp_firewall_outbound_udp_output
-  when:
-    - routeros_snmp_enabled
-    - routeros_snmp is defined and routeros_snmp | length > 0
-
-- name: "SNMP > Add firewall rule outbound (tcp)"
-  ansible.builtin.set_fact:
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'output', 'dst-address-list': 'snmp', 'port': '161', 'protocol': 'tcp', 'comment': 'SNMP ~ Outbound'}] }}"
-  register: snmp_firewall_outbound_tcp_output
-  when:
-    - routeros_snmp_enabled
-    - routeros_snmp is defined and routeros_snmp | length > 0
-
-- name: "SNMP > Add firewall rule forward (udp)"
-  ansible.builtin.set_fact:
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'forward', 'dst-address-list': 'snmp', 'port': '161', 'protocol': 'udp', 'comment': 'SNMP ~ Forward'}] }}"
-  register: snmp_firewall_forward_udp_output
-  when:
-    - routeros_snmp_enabled
-    - routeros_snmp is defined and routeros_snmp | length > 0
-
-- name: "SNMP > Add firewall rule forward (tcp)"
-  ansible.builtin.set_fact:
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'forward', 'dst-address-list': 'snmp', 'port': '161', 'protocol': 'tcp', 'comment': 'SNMP ~ Forward'}] }}"
-  register: snmp_firewall_forward_tcp_output
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'type': 'ipv4', 'chain': chain, 'arguments': arguments, 'comment': 'SNMP Service ~ ' + comment}] }}"
+  loop:
+    - {
+        "chain": "input",
+        "comment": "Inbound",
+        "arguments":
+          [
+            "action=accept",
+            "src-address-list=snmp",
+            "port=161",
+            "protocol=udp",
+          ],
+      }
+    - {
+        "chain": "input",
+        "comment": "Inbound",
+        "arguments":
+          [
+            "action=accept",
+            "src-address-list=snmp",
+            "port=161",
+            "protocol=tcp",
+          ],
+      }
+    - {
+        "chain": "forward",
+        "comment": "Forward",
+        "arguments":
+          [
+            "action=accept",
+            "src-address-list=snmp",
+            "port=161",
+            "protocol=udp",
+          ],
+      }
+    - {
+        "chain": "forward",
+        "comment": "Forward",
+        "arguments":
+          [
+            "action=accept",
+            "src-address-list=snmp",
+            "port=161",
+            "protocol=tcp",
+          ],
+      }
+    - {
+        "chain": "forward",
+        "comment": "Forward",
+        "arguments":
+          [
+            "action=accept",
+            "dst-address-list=snmp",
+            "port=161",
+            "protocol=udp",
+          ],
+      }
+    - {
+        "chain": "forward",
+        "comment": "Forward",
+        "arguments":
+          [
+            "action=accept",
+            "dst-address-list=snmp",
+            "port=161",
+            "protocol=tcp",
+          ],
+      }
+    - {
+        "chain": "output",
+        "comment": "Outbound",
+        "arguments":
+          [
+            "action=accept",
+            "dst-address-list=snmp",
+            "port=161",
+            "protocol=udp",
+          ],
+      }
+    - {
+        "chain": "output",
+        "comment": "Outbound",
+        "arguments":
+          [
+            "action=accept",
+            "dst-address-list=snmp",
+            "port=161",
+            "protocol=tcp",
+          ],
+      }
+  register: snmp_firewall_output
+  vars:
+    chain: "{{ item.chain }}"
+    comment: "{{ item.comment }}"
+    arguments: "{{ item.arguments }}"
   when:
     - routeros_snmp_enabled
     - routeros_snmp is defined and routeros_snmp | length > 0
 
 - name: "SNMP > Add firewall address-list"
   ansible.builtin.set_fact:
-    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'snmp', 'address': addresses, 'comment': 'SNMP Server - ' + name + ' (' + comment + ')', 'disabled': disabled}] }}"
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'snmp', 'address': addresses, 'comment': 'SNMP Server - ' + comname + ' (' + comment + ')', 'disabled': disabled}] }}"
   with_items: "{{ routeros_snmp_communities }}"
   vars:
-    name: "{{ item.key }}"
+    comname: "{{ item.key }}"
     comment: "{{ item.value.comment | default('') }}"
     disabled: "{{ item.value.disabled | default('no') }}"
-    addresses: "{{ item.value.addresses | default(['0.0.0.0/0']) | join(',') }}"
-  register: snmp_firewall_address_output
+    addresses: "{{ item.value.addresses | default(['0.0.0.0/0']) }}"
+    #addresses: "{{ item.value.addresses | default(['0.0.0.0/0']) | join(',') }}"
+  register: snmp_firewall_adress_output
   when:
     - routeros_snmp_enabled
     - routeros_snmp is defined and routeros_snmp | length > 0
@@ -160,16 +214,7 @@
       - "COMMUNITY     : {{ routeros_snmp_communities_output }}"
       - "SNMP          : {{ routeros_snmp_output | default('') }}"
       - "FIREWALL      : {{ snmp_firewall_output | default('') }}"
-      - "FIREWALL IN   : {{ snmp_firewall_inbound_udp_output | default('') }}"
-      - "FIREWALL IN   : {{ snmp_firewall_inbound_tcp_output | default('') }}"
-      - "FIREWALL OUT  : {{ snmp_firewall_outbound_udp_output | default('') }}"
-      - "FIREWALL OUT  : {{ snmp_firewall_outbound_tcp_output | default('') }}"
-      - "FIREWALL FWD  : {{ snmp_firewall_forward_udp_output | default('') }}"
-      - "FIREWALL FWD  : {{ snmp_firewall_forward_tcp_output | default('') }}"
-      - "FIREWALL LIST : {{ snmp_firewall_address_output | default('') }}"
       - "FIREWALL RULES: {{ routeros_firewall_rules | default('') }}"
       - "ADDRESS LIST  : {{ routeros_address_list | default('') }}"
-  when:
-    - routeros_show_output is true
   tags:
     - routeros_show_output

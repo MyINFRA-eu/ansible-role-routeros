@@ -150,14 +150,16 @@
 - name: "ADDRESS-LISTS > Create address lists (IPv6)"
   community.routeros.command:
     commands:
-      - /ipv6/firewall/address-list add list={{ list }} address={{ item.1 }} comment={{ comment }}
+      - /ipv6/firewall/address-list add list={{ list }} address={{ item.1 }} comment={{ comment + ansible_comment | community.routeros.quote_argument_value }}
   loop: "{{ routeros_address_list6 | default([]) | subelements('address') }}"
   vars:
     list: "{{ item.0.list | default('') | community.routeros.quote_argument_value }}"
     #address: "{{ item.0.address | default('') | community.routeros.quote_argument_value }}"
     address: "{{ item.1 | default('') | community.routeros.quote_argument_value }}"
-    comment: "{{ item.0.comment | default('') | community.routeros.quote_argument_value }}"
+    #comment: "{{ item.0.comment | default('') | community.routeros.quote_argument_value }}"
+    comment: "{{ item.0.comment | default('') }}"
     enabled: "{{ item.0.enabled | default('yes') }}"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
   register: address_list6_add_output
   when:
     - enabled is true

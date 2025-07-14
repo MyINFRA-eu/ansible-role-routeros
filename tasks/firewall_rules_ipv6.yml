@@ -1,0 +1,363 @@
+---
+#####
+#
+# @name MyINFRA.eu ~ Ansible RouterOS Role
+# @version 2025.06-000.beta1
+# @since 2025.06-000.beta1
+#
+# @copyright (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code
+# @author Dennis de Houx <dennis@dehoux.be>
+# @license https://creativecommons.org/licenses/by-nc-nd/4.0/deed.en CC BY-NC-ND 4.0
+#
+###
+#
+# Ansible role to manage IPv6 firewall rules.
+#
+#####
+
+###
+### Load settings
+##############################
+
+- name: "FIREWALL (IPv6) > Load default settings"
+  ansible.builtin.set_fact:
+    firewall6_rules: "{{ firewall6_rules | default({}) | combine(firewall6_rules_data) }}"
+    firewall6_default_allow_all_inbound: "{{ allow_all_inbound }}"
+    firewall6_default_allow_all_forward: "{{ allow_all_forward }}"
+    firewall6_default_allow_all_outbound: "{{ allow_all_outbound }}"
+    firewall6_default_allow_icmp: "{{ allow_icmp }}"
+    firewall6_default_allow_log: "{{ allow_log }}"
+    firewall6_allow_all_inbound: "{{ allow_all_inbound }}"
+    firewall6_allow_all_forward: "{{ allow_all_forward }}"
+    firewall6_allow_all_outbound: "{{ allow_all_outbound }}"
+    firewall6_allow_icmp: "{{ allow_icmp }}"
+    firewall6_allow_log: "{{ allow_log }}"
+  loop: "{{ routeros_firewall | dict2items }}"
+  vars:
+    hostname: "{{ item.key | default('') }}"
+    firewall6_rules_data: "{{ item.value.ipv6.rules | default({}) }}"
+    allow_all_inbound: "{{ item.value.ipv6.input | default('accept') }}"
+    allow_all_forward: "{{ item.value.ipv6.forward | default('accept') }}"
+    allow_all_outbound: "{{ item.value.ipv6.output | default('accept') }}"
+    allow_icmp: "{{ item.value.ipv6.icmp | default('accept') }}"
+    allow_log: "{{ item.value.ipv6.log | default(false) }}"
+  when:
+    - hostname == "default"
+    #- firewall6_rules_data is defined and firewall6_rules_data | length > 0
+    - routeros_firewall is defined and routeros_firewall | length > 0
+
+- name: "FIREWALL (IPv6) > Load device settings"
+  ansible.builtin.set_fact:
+    firewall6_rules: "{{ firewall6_rules | default({}) | combine(firewall6_rules_data) }}"
+    firewall6_allow_all_inbound: "{{ allow_all_inbound }}"
+    firewall6_allow_all_forward: "{{ allow_all_forward }}"
+    firewall6_allow_all_outbound: "{{ allow_all_outbound }}"
+    firewall6_allow_icmp: "{{ allow_icmp }}"
+    firewall6_allow_log: "{{ allow_log }}"
+  loop: "{{ routeros_firewall | dict2items }}"
+  vars:
+    hostname: "{{ item.key | default('default') }}"
+    firewall6_rules_data: "{{ item.value.ipv6.rules | default({}) }}"
+    allow_all_inbound: "{{ item.value.ipv6.input | default(firewall6_default_allow_all_inbound) }}"
+    allow_all_forward: "{{ item.value.ipv6.forward | default(firewall6_default_allow_all_forward) }}"
+    allow_all_outbound: "{{ item.value.ipv6.output | default(firewall6_default_allow_all_outbound) }}"
+    allow_icmp: "{{ item.value.ipv6.icmp | default(firewall6_default_allow_icmp) }}"
+    allow_log: "{{ item.value.ipv6.log | default(firewall6_default_allow_log) }}"
+  when:
+    - hostname != "default"
+    - hostname == ansible_net_hostname
+    #- firewall6_rules_data is defined and firewall6_rules_data | length > 0
+    - routeros_firewall is defined and routeros_firewall | length > 0
+
+- name: "FIREWALL (IPv6) > Configure rules"
+  ansible.builtin.set_fact:
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'type': 'ipv6', 'rule_name': rule_name, 'chain': chain, 'arguments': arguments, 'comment': comment}] }}"
+  loop: "{{ firewall6_rules | dict2items }}"
+  vars:
+    rule_name: "{{ item.key | default('') }}"
+    chain: "{{ item.value.chain }}"
+    comment: "{{ item.value.comment | default('Automaticly generated for ' + item.key) }}"
+    arguments: "{{ item.value.arguments }}"
+  when:
+    - arguments is defined and arguments | length > 0
+    - rule_name is defined and rule_name | length > 0
+    - firewall6_rules is defined and firewall6_rules | length > 0
+
+###
+### Firewall Remove Rules
+##############################
+
+- name: "FIREWALL (IPv6) > Remove custom rules"
+  community.routeros.command:
+    commands:
+      #- /ipv6/firewall/filter remove [find where comment={{ comment }} and chain={{ chain }} and protocol={{ protocol }} and action={{ fwaction }} and port={{ ports }}]
+      #- /ipv6/firewall/filter remove [find where comment={{ comment }} and chain={{ chain }} and action={{ fwaction }} and port={{ ports }}]
+      #- /ipv6/firewall/filter remove [find where comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }} and chain={{ chain }} and action={{ fwaction }}]
+      - /ipv6/firewall/filter remove [find where comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }} and chain={{ chain }}]
+  loop: "{{ routeros_firewall_rules }}"
+  vars:
+    #comment: "{{ item.comment | default('Automaticly generated') | community.routeros.quote_argument_value }}"
+    comment: "{{ item.comment | default('Automaticly generated') }}"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+    chain: "{{ item.chain | default('') | community.routeros.quote_argument_value }}"
+    type: "{{ item.type }}"
+    #protocol: "{{ item.protocol | default('tcp') | community.routeros.quote_argument_value }}"
+    #fwaction: "{{ item.action | default('accept') | community.routeros.quote_argument_value }}"
+    #ports: "{{ item.port | default('') | community.routeros.quote_argument_value }}"
+    #enabled: "{{ item.enabled | default('yes') }}"
+  register: firewall6_custom_rules_remove_output
+  when:
+    #- enabled is true
+    - type == "ipv6"
+    - comment is defined and comment | length > 0
+    - routeros_firewall_rules is defined and routeros_firewall_rules | length > 0
+
+- name: "FIREWALL (IPv6) > Remove default rules"
+  community.routeros.command:
+    commands:
+      - /ipv6/firewall/filter remove [find where chain={{ chain }} and comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}]
+  loop:
+    - { "chain": "input", "comment": "Allow all ~ Inbound" }
+    - { "chain": "forward", "comment": "Allow all ~ Forward" }
+    - { "chain": "output", "comment": "Allow all ~ Outbound" }
+    - { "chain": "input", "comment": "Drop all ~ Inbound" }
+    - { "chain": "forward", "comment": "Drop all ~ Forward" }
+    - { "chain": "output", "comment": "Drop all ~ Outbound" }
+    - { "chain": "input", "comment": "Allow established & related ~ Inbound" }
+    - { "chain": "forward", "comment": "Allow established & related ~ Forward" }
+    - { "chain": "output", "comment": "Allow established & related ~ Outbound" }
+    - { "chain": "input", "comment": "Allow ICMP ~ Inbound" }
+    - { "chain": "forward", "comment": "Allow ICMP ~ Forward" }
+    - { "chain": "output", "comment": "Allow ICMP ~ Outbound" }
+  vars:
+    chain: "{{ item.chain | community.routeros.quote_argument_value }}"
+    comment: "{{ item.comment }}"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+  register: firewall6_default_rules_remove_output
+  when:
+    - comment is defined and comment | length > 0
+    - routeros_firewall_rules is defined and routeros_firewall_rules | length > 0
+
+###
+### Inbound Rules
+##############################
+
+- name: "FIREWALL (IPv6) > Allow established & related inbound"
+  community.routeros.command:
+    commands:
+      - /ipv6/firewall/filter add action=accept chain=input connection-state=established,related comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
+  register: firewall6_established_related_inbound_output
+  vars:
+    comment: "Allow established & related ~ Inbound"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+
+- name: "FIREWALL (IPv6) > Allow icmp inbound"
+  community.routeros.command:
+    commands:
+      - /ipv6/firewall/filter add action=accept chain=input protocol=icmpv6 comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
+  register: firewall6_allow_icmp_inbound_output
+  vars:
+    comment: "Allow ICMP ~ Inbound"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+  when:
+    - firewall6_allow_icmp == "accept"
+
+- name: "FIREWALL (IPv6) > Create inbound rules"
+  community.routeros.command:
+    commands:
+      - /ipv6/firewall/filter add chain={{ chain }} comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }} {{ arguments }}
+  loop: "{{ routeros_firewall_rules | default([]) }}"
+  vars:
+    type: "{{ item.type }}"
+    rule_name: "{{ item.rule_name }}"
+    chain: "{{ item.chain | community.routeros.quote_argument_value }}"
+    comment: "{{ item.comment }}"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+    arguments: "{{ item.arguments | community.routeros.join }}"
+  register: firewall6_rules_add_inbound_output
+  when:
+    - type == "ipv6"
+    - chain == "input"
+    - routeros_firewall_rules is defined and routeros_firewall_rules | length > 0
+
+- name: "FIREWALL (IPv6) > Allow all inbound"
+  community.routeros.command:
+    commands:
+      - /ipv6/firewall/filter add action=accept chain=input comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
+  register: firewall6_allow_all_inbound_output
+  vars:
+    comment: "Allow all ~ Inbound"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+  when:
+    - firewall6_allow_all_inbound == "accept"
+
+- name: "FIREWALL (IPv6) > Drop all inbound"
+  community.routeros.command:
+    commands:
+      - /ipv6/firewall/filter add action=drop chain=input comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
+  register: firewall6_drop_all_inbound_output
+  vars:
+    comment: "Drop all ~ Inbound"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+  when:
+    - firewall6_allow_all_inbound == "drop"
+
+###
+### Forward Rules
+##############################
+
+- name: "FIREWALL (IPv6) > Allow established & related forward"
+  community.routeros.command:
+    commands:
+      - /ipv6/firewall/filter add action=accept chain=forward connection-state=established,related comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
+  register: firewall6_established_related_forward_output
+  vars:
+    comment: "Allow established & related ~ Forward"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+
+- name: "FIREWALL (IPv6) > Allow icmp forward"
+  community.routeros.command:
+    commands:
+      - /ipv6/firewall/filter add action=accept chain=forward protocol=icmpv6 comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
+  register: firewall6_allow_icmp_forward_output
+  vars:
+    comment: "Allow ICMP ~ Forward"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+  when:
+    - firewall6_allow_icmp == "accept"
+
+- name: "FIREWALL (IPv6) > Create forward rules"
+  community.routeros.command:
+    commands:
+      - /ipv6/firewall/filter add chain={{ chain }} comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }} {{ arguments }}
+  loop: "{{ routeros_firewall_rules | default([]) }}"
+  vars:
+    type: "{{ item.type }}"
+    rule_name: "{{ item.rule_name }}"
+    chain: "{{ item.chain | community.routeros.quote_argument_value }}"
+    comment: "{{ item.comment }}"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+    arguments: "{{ item.arguments | community.routeros.join }}"
+  register: firewall6_rules_add_forward_output
+  when:
+    - type == "ipv6"
+    - chain == "forward"
+    - routeros_firewall_rules is defined and routeros_firewall_rules | length > 0
+
+- name: "FIREWALL (IPv6) > Allow all forward"
+  community.routeros.command:
+    commands:
+      - /ipv6/firewall/filter add action=accept chain=forward comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
+  register: firewall6_allow_all_forward_output
+  vars:
+    comment: "Allow all ~ Forward"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+  when:
+    - firewall6_allow_all_forward == "accept"
+
+- name: "FIREWALL (IPv6) > Drop all forward"
+  community.routeros.command:
+    commands:
+      - /ipv6/firewall/filter add action=drop chain=forward comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
+  register: firewall6_drop_all_forward_output
+  vars:
+    comment: "Drop all ~ Forward"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+  when:
+    - firewall6_allow_all_forward == "drop"
+
+###
+### Outbound Rules
+##############################
+
+- name: "FIREWALL (IPv6) > Allow established & related outbound"
+  community.routeros.command:
+    commands:
+      - /ipv6/firewall/filter add action=accept chain=output connection-state=established,related comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
+  register: firewall6_established_related_outbound_output
+  vars:
+    comment: "Allow established & related ~ Outbound"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+
+- name: "FIREWALL (IPv6) > Allow icmp outbound"
+  community.routeros.command:
+    commands:
+      - /ipv6/firewall/filter add action=accept chain=output protocol=icmpv6 comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
+  register: firewall6_allow_icmp_outbound_output
+  vars:
+    comment: "Allow ICMP ~ Outbound"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+  when:
+    - firewall6_allow_icmp == "accept"
+
+- name: "FIREWALL (IPv6) > Create outbound rules"
+  community.routeros.command:
+    commands:
+      - /ipv6/firewall/filter add chain={{ chain }} comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }} {{ arguments }}
+  loop: "{{ routeros_firewall_rules | default([]) }}"
+  vars:
+    type: "{{ item.type }}"
+    rule_name: "{{ item.rule_name }}"
+    chain: "{{ item.chain | community.routeros.quote_argument_value }}"
+    comment: "{{ item.comment }}"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+    arguments: "{{ item.arguments | community.routeros.join }}"
+  register: firewall6_rules_add_outbound_output
+  when:
+    - type == "ipv6"
+    - chain == "output"
+    - routeros_firewall_rules is defined and routeros_firewall_rules | length > 0
+
+- name: "FIREWALL (IPv6) > Allow all outboud"
+  community.routeros.command:
+    commands:
+      - /ipv6/firewall/filter add action=accept chain=output comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
+  register: firewall6_allow_all_outbound_output
+  vars:
+    comment: "Allow all ~ Outbound"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+  when:
+    - firewall6_allow_all_outbound == "accept"
+
+- name: "FIREWALL (IPv6) > Drop all outboud"
+  community.routeros.command:
+    commands:
+      - /ipv6/firewall/filter add action=drop chain=output comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
+  register: firewall6_drop_all_outbound_output
+  vars:
+    comment: "Drop all ~ Outbound"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+  when:
+    - firewall6_allow_all_outbound == "drop"
+
+###
+### Show Output
+##############################
+
+- name: "FIREWALL (IPv6) > Show output"
+  ansible.builtin.debug:
+    msg:
+      - "REMOVE CUSTOM     : {{ firewall6_custom_rules_remove_output | default('') }}"
+      - "REMOVE DEFAULT    : {{ firewall6_default_rules_remove_output | default('') }}"
+      - "*** INBOUND ***"
+      - "ESTABLISH,RELATED : {{ firewall6_established_related_inbound_output | default('') }}"
+      - "ALLOW ICMP        : {{ firewall6_allow_icmp_inbound_output | default('') }}"
+      - "ADD FIREWALL RULES: {{ firewall6_rules_add_inbound_output | default('') }}"
+      - "ALLOW ALL         : {{ firewall6_allow_all_inbound_output | default('') }}"
+      - "DROP ALL          : {{ firewall6_drop_all_inbound_output | default('') }}"
+      - "*** FORWARD ***"
+      - "ESTABLISH,RELATED : {{ firewall6_established_related_forward_output | default('') }}"
+      - "ALLOW ICMP        : {{ firewall6_allow_icmp_forward_output | default('') }}"
+      - "ADD FIREWALL RULES: {{ firewall6_rules_add_forward_output | default('') }}"
+      - "ALLOW ALL         : {{ firewall6_allow_all_forward_output | default('') }}"
+      - "DROP ALL          : {{ firewall6_drop_all_forward_output | default('') }}"
+      - "*** OUTBOUND ***"
+      - "ESTABLISH,RELATED : {{ firewall6_established_related_outbound_output | default('') }}"
+      - "ALLOW ICMP        : {{ firewall6_allow_icmp_outbound_output | default('') }}"
+      - "ADD FIREWALL RULES: {{ firewall6_rules_add_outbound_output | default('') }}"
+      - "ALLOW ALL         : {{ firewall6_allow_all_outbound_output | default('') }}"
+      - "DROP ALL          : {{ firewall6_drop_all_outbound_output | default('') }}"
+  when:
+    - routeros_show_output is true
+  tags:
+    - routeros_show_output

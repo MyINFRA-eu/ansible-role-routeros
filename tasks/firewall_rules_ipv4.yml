@@ -19,9 +19,14 @@
 ### Load settings
 ##############################
 
-- name: "FIREWALL (IPv4) > Load default settings (IPv4)"
+- name: "FIREWALL (IPv4) > Load default settings"
   ansible.builtin.set_fact:
     firewall_rules: "{{ firewall_rules | default({}) | combine(firewall_rules_data) }}"
+    firewall_default_allow_all_inbound: "{{ allow_all_inbound }}"
+    firewall_default_allow_all_forward: "{{ allow_all_forward }}"
+    firewall_default_allow_all_outbound: "{{ allow_all_outbound }}"
+    firewall_default_allow_icmp: "{{ allow_icmp }}"
+    firewall_default_allow_log: "{{ allow_log }}"
     firewall_allow_all_inbound: "{{ allow_all_inbound }}"
     firewall_allow_all_forward: "{{ allow_all_forward }}"
     firewall_allow_all_outbound: "{{ allow_all_outbound }}"
@@ -30,7 +35,7 @@
   loop: "{{ routeros_firewall | dict2items }}"
   vars:
     hostname: "{{ item.key | default('') }}"
-    firewall_rules_data: "{{ item.value.ipv4.rules }}"
+    firewall_rules_data: "{{ item.value.ipv4.rules | default({}) }}"
     allow_all_inbound: "{{ item.value.ipv4.input | default('accept') }}"
     allow_all_forward: "{{ item.value.ipv4.forward | default('accept') }}"
     allow_all_outbound: "{{ item.value.ipv4.output | default('accept') }}"
@@ -38,10 +43,10 @@
     allow_log: "{{ item.value.ipv4.log | default(false) }}"
   when:
     - hostname == "default"
-    - firewall_rules_data is defined and firewall_rules_data | length > 0
+    #- firewall_rules_data is defined and firewall_rules_data | length > 0
     - routeros_firewall is defined and routeros_firewall | length > 0
 
-- name: "FIREWALL (IPv4) > Load device settings (IPv4)"
+- name: "FIREWALL (IPv4) > Load device settings"
   ansible.builtin.set_fact:
     firewall_rules: "{{ firewall_rules | default({}) | combine(firewall_rules_data) }}"
     firewall_allow_all_inbound: "{{ allow_all_inbound }}"
@@ -52,65 +57,65 @@
   loop: "{{ routeros_firewall | dict2items }}"
   vars:
     hostname: "{{ item.key | default('default') }}"
-    firewall_rules_data: "{{ item.value.ipv4.rules }}"
-    allow_all_inbound: "{{ item.value.ipv4.input | default(firewall_allow_all_inbound) }}"
-    allow_all_forward: "{{ item.value.ipv4.forward | default(firewall_allow_all_forward) }}"
-    allow_all_outbound: "{{ item.value.ipv4.output | default(firewall_allow_all_outbound) }}"
-    allow_icmp: "{{ item.value.ipv4.icmp | default(firewall_allow_icmp) }}"
-    allow_log: "{{ item.value.ipv4.log | default(firewall_allow_log) }}"
+    firewall_rules_data: "{{ item.value.ipv4.rules | default({}) }}"
+    allow_all_inbound: "{{ item.value.ipv4.input | default(firewall_default_allow_all_inbound) }}"
+    allow_all_forward: "{{ item.value.ipv4.forward | default(firewall_default_allow_all_forward) }}"
+    allow_all_outbound: "{{ item.value.ipv4.output | default(firewall_default_allow_all_outbound) }}"
+    allow_icmp: "{{ item.value.ipv4.icmp | default(firewall_default_allow_icmp) }}"
+    allow_log: "{{ item.value.ipv4.log | default(firewall_default_allow_log) }}"
   when:
     - hostname != "default"
     - hostname == ansible_net_hostname
-    - firewall_rules_data is defined and firewall_rules_data | length > 0
+    #- firewall_rules_data is defined and firewall_rules_data | length > 0
     - routeros_firewall is defined and routeros_firewall | length > 0
 
-- name: "FIREWALL (IPv4) > Configure rules (IPv4)"
+- name: "FIREWALL (IPv4) > Configure rules"
   ansible.builtin.set_fact:
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'name': fwname, 'action': fwaction, 'chain': chain, 'src-address-list': src_address_list, 'dst-address-list': dst_address_list, 'protocol': protocol, 'port': ports, 'comment': comment, 'log': log, 'enabled': enabled}] }}"
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'type': 'ipv4', 'rule_name': rule_name, 'chain': chain, 'arguments': arguments, 'comment': comment}] }}"
   loop: "{{ firewall_rules | dict2items }}"
   vars:
-    fwname: "{{ item.key | default('') }}"
-    comment: "{{ item.value.comment | default('Automatic generated - ' + item.key) }}"
-    chain: "{{ item.value.chain | default('') }}"
-    fwaction: "{{ item.value.action | default('accept') }}"
-    protocol: "{{ item.value.protcol | default('tcp') }}"
-    ports: "{{ item.value.port | default('') }}"
-    log: "{{ item.value.log | default(firewall_allow_log) }}"
-    src_address_list: "{{ item.value.src_address_list | default('') }}"
-    dst_address_list: "{{ item.value.dsst_address_list | default('') }}"
-    enabled: "{{ item.value.enabled | default(true) }}"
+    rule_name: "{{ item.key | default('') }}"
+    chain: "{{ item.value.chain }}"
+    comment: "{{ item.value.comment | default('Automaticly generated for ' + item.key) }}"
+    arguments: "{{ item.value.arguments }}"
   when:
-    - fwname is defined and fwname | length > 0
-    - address_list is defined and address_list | length > 0
+    - arguments is defined and arguments | length > 0
+    - rule_name is defined and rule_name | length > 0
+    - firewall_rules is defined and firewall_rules | length > 0
 
 ###
 ### Firewall Remove Rules
 ##############################
 
-- name: "FIREWALL (IPv4) > Remove custom rules (IPv4)"
+- name: "FIREWALL (IPv4) > Remove custom rules"
   community.routeros.command:
     commands:
       #- /ip/firewall/filter remove [find where comment={{ comment }} and chain={{ chain }} and protocol={{ protocol }} and action={{ fwaction }} and port={{ ports }}]
       #- /ip/firewall/filter remove [find where comment={{ comment }} and chain={{ chain }} and action={{ fwaction }} and port={{ ports }}]
-      - /ip/firewall/filter remove [find where comment={{ comment }} and chain={{ chain }} and action={{ fwaction }}]
+      #- /ip/firewall/filter remove [find where comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }} and chain={{ chain }} and action={{ fwaction }}]
+      - /ip/firewall/filter remove [find where comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }} and chain={{ chain }}]
   loop: "{{ routeros_firewall_rules }}"
   vars:
-    comment: "{{ item.comment | default('Automaticly generated') | community.routeros.quote_argument_value }}"
+    #comment: "{{ item.comment | default('Automaticly generated') | community.routeros.quote_argument_value }}"
+    comment: "{{ item.comment | default('Automaticly generated') }}"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
     chain: "{{ item.chain | default('') | community.routeros.quote_argument_value }}"
-    protocol: "{{ item.protocol | default('') | community.routeros.quote_argument_value }}"
-    fwaction: "{{ item.action | default('accept') | community.routeros.quote_argument_value }}"
-    ports: "{{ item.port | default('') | community.routeros.quote_argument_value }}"
+    type: "{{ item.type }}"
+    #protocol: "{{ item.protocol | default('tcp') | community.routeros.quote_argument_value }}"
+    #fwaction: "{{ item.action | default('accept') | community.routeros.quote_argument_value }}"
+    #ports: "{{ item.port | default('') | community.routeros.quote_argument_value }}"
     #enabled: "{{ item.enabled | default('yes') }}"
   register: firewall_custom_rules_remove_output
   when:
     #- enabled is true
+    - type == "ipv4"
     - comment is defined and comment | length > 0
-    - routeros_address_list is defined and routeros_address_list | length > 0
+    - routeros_firewall_rules is defined and routeros_firewall_rules | length > 0
 
-- name: "FIREWALL (IPv4) > Remove default rules (IPv4)"
+- name: "FIREWALL (IPv4) > Remove default rules"
   community.routeros.command:
     commands:
-      - /ip/firewall/filter remove [find where chain={{ item.chain }} and comment={{ item.comment | community.routeros.quote_argument_value }}]
+      - /ip/firewall/filter remove [find where chain={{ chain }} and comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}]
   loop:
     - { "chain": "input", "comment": "Allow all ~ Inbound" }
     - { "chain": "forward", "comment": "Allow all ~ Forward" }
@@ -125,11 +130,13 @@
     - { "chain": "forward", "comment": "Allow ICMP ~ Forward" }
     - { "chain": "output", "comment": "Allow ICMP ~ Outbound" }
   vars:
-    comment: "{{ item | community.routeros.quote_argument_value }}"
+    chain: "{{ item.chain | community.routeros.quote_argument_value }}"
+    comment: "{{ item.comment }}"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
   register: firewall_default_rules_remove_output
   when:
     - comment is defined and comment | length > 0
-    - routeros_address_list is defined and routeros_address_list | length > 0
+    - routeros_firewall_rules is defined and routeros_firewall_rules | length > 0
 
 ###
 ### Inbound Rules
@@ -138,58 +145,60 @@
 - name: "FIREWALL (IPv4) > Allow established & related inbound"
   community.routeros.command:
     commands:
-      - /ip/firewall/filter add action=accept chain=input connection-state=established,related comment="Allow established & related ~ Inbound"
+      - /ip/firewall/filter add action=accept chain=input connection-state=established,related comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
   register: firewall_established_related_inbound_output
+  vars:
+    comment: "Allow established & related ~ Inbound"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
 
 - name: "FIREWALL (IPv4) > Allow icmp inbound"
   community.routeros.command:
     commands:
-      - /ip/firewall/filter add action=accept chain=input protocol=icmp comment="Allow ICMP ~ Inbound"
+      - /ip/firewall/filter add action=accept chain=input protocol=icmp comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
   register: firewall_allow_icmp_inbound_output
+  vars:
+    comment: "Allow ICMP ~ Inbound"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
   when:
     - firewall_allow_icmp == "accept"
 
 - name: "FIREWALL (IPv4) > Create inbound rules"
   community.routeros.command:
     commands:
-      - /ip/firewall/filter add action={{ fwaction }} chain={{ chain }} dst-port={{ ports }} dst-address-list={{ dst_addr_list }} src-address-list={{ src_addr_list }} protocol={{ protocol }} comment={{ comment }} disabled={{ disabled }} log={{ 'yes' if log else 'no' }}
-      #- /ip/firewall/filter add action={{ fwaction }} chain={{ chain }} port={{ ports }} protocol={{ protocol }} in-interface={{ in_interface }} in-interface-list={{ in_interface_list }} out-interface={{ out_interface }} out-interface-list={{ out_interface_list }} comment={{ comment }} disabled={{ disabled }} log={{ log }}
+      - /ip/firewall/filter add chain={{ chain }} comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }} {{ arguments }}
   loop: "{{ routeros_firewall_rules | default([]) }}"
   vars:
-    fwaction: "{{ item.action | default('') | community.routeros.quote_argument_value }}"
-    chain: "{{ item.chain | default('') | community.routeros.quote_argument_value }}"
-    chain_check: "{{ item.chain | default('') }}"
-    ports: "{{ item.port | default('') | community.routeros.quote_argument_value }}"
-    protocol: "{{ item.protocol | default('') | community.routeros.quote_argument_value }}"
-    src_addr_list: "{{ item.src_address_list | default('') | community.routeros.quote_argument_value }}"
-    dst_addr_list: "{{ item.dst_address_list | default('') | community.routeros.quote_argument_value }}"
-    in_interface: "{{ item.in_interface | default('') | community.routeros.quote_argument_value }}"
-    in_interface_list: "{{ item.in_interface_list | default('') | community.routeros.quote_argument_value }}"
-    out_interface: "{{ item.out_interface | default('') | community.routeros.quote_argument_value }}"
-    out_interface_list: "{{ item.out_interface_list | default('') | community.routeros.quote_argument_value }}"
-    log: "{{ item.log | default(firewall_allow_log) | community.routeros.quote_argument_value }}"
-    comment: "{{ item.comment | default('Automaticly generated') | community.routeros.quote_argument_value }}"
-    disabled: "{{ 'no' if item.enabled else 'yes' | default('no') }}"
+    type: "{{ item.type }}"
+    rule_name: "{{ item.rule_name }}"
+    chain: "{{ item.chain | community.routeros.quote_argument_value }}"
+    comment: "{{ item.comment }}"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+    arguments: "{{ item.arguments | community.routeros.join }}"
   register: firewall_rules_add_inbound_output
   when:
-    #- enabled is true
-    - chain_check == "input"
-    #- comment is defined and comment | length > 0
+    - type == "ipv4"
+    - chain == "input"
     - routeros_firewall_rules is defined and routeros_firewall_rules | length > 0
 
 - name: "FIREWALL (IPv4) > Allow all inbound"
   community.routeros.command:
     commands:
-      - /ip/firewall/filter add action=accept chain=input comment="Allow all ~ Inbound"
+      - /ip/firewall/filter add action=accept chain=input comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
   register: firewall_allow_all_inbound_output
+  vars:
+    comment: "Allow all ~ Inbound"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
   when:
     - firewall_allow_all_inbound == "accept"
 
-- name: "FIREWALL (IPv4) > Drop all inboud"
+- name: "FIREWALL (IPv4) > Drop all inbound"
   community.routeros.command:
     commands:
-      - /ip/firewall/filter add action=drop chain=input comment="Drop all ~ Inbound" disabled=yes
+      - /ip/firewall/filter add action=drop chain=input comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
   register: firewall_drop_all_inbound_output
+  vars:
+    comment: "Drop all ~ Inbound"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
   when:
     - firewall_allow_all_inbound == "drop"
 
@@ -200,57 +209,60 @@
 - name: "FIREWALL (IPv4) > Allow established & related forward"
   community.routeros.command:
     commands:
-      - /ip/firewall/filter add action=accept chain=forward connection-state=established,related comment="Allow established & related ~ Forward"
+      - /ip/firewall/filter add action=accept chain=forward connection-state=established,related comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
   register: firewall_established_related_forward_output
+  vars:
+    comment: "Allow established & related ~ Forward"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
 
 - name: "FIREWALL (IPv4) > Allow icmp forward"
   community.routeros.command:
     commands:
-      - /ip/firewall/filter add action=accept chain=forward protocol=icmp comment="Allow ICMP ~ Forward"
+      - /ip/firewall/filter add action=accept chain=forward protocol=icmp comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
   register: firewall_allow_icmp_forward_output
+  vars:
+    comment: "Allow ICMP ~ Forward"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
   when:
     - firewall_allow_icmp == "accept"
 
 - name: "FIREWALL (IPv4) > Create forward rules"
   community.routeros.command:
     commands:
-      - /ip/firewall/filter add action={{ fwaction }} chain={{ chain }} port={{ ports }} dst-address-list={{ dst_addr_list }} src-address-list={{ src_addr_list }} protocol={{ protocol }} comment={{ comment }} disabled={{ disabled }} log={{ 'yes' if log else 'no' }}
-      #- /ip/firewall/filter add action={{ fwaction }} chain={{ chain }} port={{ ports }} protocol={{ protocol }} in-interface={{ in_interface }} in-interface-list={{ in_interface_list }} out-interface={{ out_interface }} out-interface-list={{ out_interface_list }} comment={{ comment }} disabled={{ disabled }} log={{ log }}
+      - /ip/firewall/filter add chain={{ chain }} comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }} {{ arguments }}
   loop: "{{ routeros_firewall_rules | default([]) }}"
   vars:
-    fwaction: "{{ item.action | default('') | community.routeros.quote_argument_value }}"
-    chain: "{{ item.chain | default('') | community.routeros.quote_argument_value }}"
-    chain_check: "{{ item.chain | default('') }}"
-    ports: "{{ item.port | default('') | community.routeros.quote_argument_value }}"
-    protocol: "{{ item.protocol | default('') | community.routeros.quote_argument_value }}"
-    src_addr_list: "{{ item.src_address_list | default('') | community.routeros.quote_argument_value }}"
-    dst_addr_list: "{{ item.dst_address_list | default('') | community.routeros.quote_argument_value }}"
-    in_interface: "{{ item.in_interface | default('') | community.routeros.quote_argument_value }}"
-    in_interface_list: "{{ item.in_interface_list | default('') | community.routeros.quote_argument_value }}"
-    out_interface: "{{ item.out_interface | default('') | community.routeros.quote_argument_value }}"
-    out_interface_list: "{{ item.out_interface_list | default('') | community.routeros.quote_argument_value }}"
-    log: "{{ item.log | default(firewall_allow_log) | community.routeros.quote_argument_value }}"
-    comment: "{{ item.comment | default('Automaticly generated') | community.routeros.quote_argument_value }}"
-    disabled: "{{ 'no' if item.enabled else 'yes' | default('no') }}"
+    type: "{{ item.type }}"
+    rule_name: "{{ item.rule_name }}"
+    chain: "{{ item.chain | community.routeros.quote_argument_value }}"
+    comment: "{{ item.comment }}"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+    arguments: "{{ item.arguments | community.routeros.join }}"
   register: firewall_rules_add_forward_output
   when:
-    - chain_check == "forward"
-    #- comment is defined and comment | length > 0
+    - type == "ipv4"
+    - chain == "forward"
     - routeros_firewall_rules is defined and routeros_firewall_rules | length > 0
 
 - name: "FIREWALL (IPv4) > Allow all forward"
   community.routeros.command:
     commands:
-      - /ip/firewall/filter add action=accept chain=forward comment="Allow all ~ Forward"
+      - /ip/firewall/filter add action=accept chain=forward comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
   register: firewall_allow_all_forward_output
+  vars:
+    comment: "Allow all ~ Forward"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
   when:
     - firewall_allow_all_forward == "accept"
 
 - name: "FIREWALL (IPv4) > Drop all forward"
   community.routeros.command:
     commands:
-      - /ip/firewall/filter add action=drop chain=forward comment="Drop all ~ Forward" disabled=yes
+      - /ip/firewall/filter add action=drop chain=forward comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
   register: firewall_drop_all_forward_output
+  vars:
+    comment: "Drop all ~ Forward"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
   when:
     - firewall_allow_all_forward == "drop"
 
@@ -261,57 +273,60 @@
 - name: "FIREWALL (IPv4) > Allow established & related outbound"
   community.routeros.command:
     commands:
-      - /ip/firewall/filter add action=accept chain=output connection-state=established,related comment="Allow established & related ~ Outbound"
+      - /ip/firewall/filter add action=accept chain=output connection-state=established,related comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
   register: firewall_established_related_outbound_output
+  vars:
+    comment: "Allow established & related ~ Outbound"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
 
 - name: "FIREWALL (IPv4) > Allow icmp outbound"
   community.routeros.command:
     commands:
-      - /ip/firewall/filter add action=accept chain=output protocol=icmp comment="Allow ICMP ~ Outbound"
+      - /ip/firewall/filter add action=accept chain=output protocol=icmp comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
   register: firewall_allow_icmp_outbound_output
+  vars:
+    comment: "Allow ICMP ~ Outbound"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
   when:
     - firewall_allow_icmp == "accept"
 
 - name: "FIREWALL (IPv4) > Create outbound rules"
   community.routeros.command:
     commands:
-      - /ip/firewall/filter add action={{ fwaction }} chain={{ chain }} src-port={{ ports }} dst-address-list={{ dst_addr_list }} src-address-list={{ src_addr_list }} protocol={{ protocol }} comment={{ comment }} disabled={{ disabled }} log={{ 'yes' if log else 'no' }}
-      #- /ip/firewall/filter add action={{ fwaction }} chain={{ chain }} port={{ ports }} protocol={{ protocol }} in-interface={{ in_interface }} in-interface-list={{ in_interface_list }} out-interface={{ out_interface }} out-interface-list={{ out_interface_list }} comment={{ comment }} disabled={{ disabled }} log={{ log }}
+      - /ip/firewall/filter add chain={{ chain }} comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }} {{ arguments }}
   loop: "{{ routeros_firewall_rules | default([]) }}"
   vars:
-    fwaction: "{{ item.action | default('') | community.routeros.quote_argument_value }}"
-    chain: "{{ item.chain | default('') | community.routeros.quote_argument_value }}"
-    chain_check: "{{ item.chain | default('') }}"
-    ports: "{{ item.port | default('') | community.routeros.quote_argument_value }}"
-    protocol: "{{ item.protocol | default('') | community.routeros.quote_argument_value }}"
-    src_addr_list: "{{ item.src_address_list | default('') | community.routeros.quote_argument_value }}"
-    dst_addr_list: "{{ item.dst_address_list | default('') | community.routeros.quote_argument_value }}"
-    in_interface: "{{ item.in_interface | default('') | community.routeros.quote_argument_value }}"
-    in_interface_list: "{{ item.in_interface_list | default('') | community.routeros.quote_argument_value }}"
-    out_interface: "{{ item.out_interface | default('') | community.routeros.quote_argument_value }}"
-    out_interface_list: "{{ item.out_interface_list | default('') | community.routeros.quote_argument_value }}"
-    log: "{{ item.log | default(firewall_allow_log) | community.routeros.quote_argument_value }}"
-    comment: "{{ item.comment | default('Automaticly generated') | community.routeros.quote_argument_value }}"
-    disabled: "{{ 'no' if item.enabled else 'yes' | default('no') }}"
+    type: "{{ item.type }}"
+    rule_name: "{{ item.rule_name }}"
+    chain: "{{ item.chain | community.routeros.quote_argument_value }}"
+    comment: "{{ item.comment }}"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
+    arguments: "{{ item.arguments | community.routeros.join }}"
   register: firewall_rules_add_outbound_output
   when:
-    - chain_check == "output"
-    #- comment is defined and comment | length > 0
+    - type == "ipv4"
+    - chain == "output"
     - routeros_firewall_rules is defined and routeros_firewall_rules | length > 0
 
 - name: "FIREWALL (IPv4) > Allow all outboud"
   community.routeros.command:
     commands:
-      - /ip/firewall/filter add action=accept chain=output comment="Allow all ~ Outbound"
+      - /ip/firewall/filter add action=accept chain=output comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
   register: firewall_allow_all_outbound_output
+  vars:
+    comment: "Allow all ~ Outbound"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
   when:
     - firewall_allow_all_outbound == "accept"
 
 - name: "FIREWALL (IPv4) > Drop all outboud"
   community.routeros.command:
     commands:
-      - /ip/firewall/filter add action=drop chain=output comment="Drop all ~ Outbound" disabled=yes
+      - /ip/firewall/filter add action=drop chain=output comment={{ (comment + ' ' + ansible_comment) | community.routeros.quote_argument_value }}
   register: firewall_drop_all_outbound_output
+  vars:
+    comment: "Drop all ~ Outbound"
+    ansible_comment: "{{ routeros_ansible_comment | default('') }}"
   when:
     - firewall_allow_all_outbound == "drop"
 
@@ -322,8 +337,26 @@
 - name: "FIREWALL (IPv4) > Show output"
   ansible.builtin.debug:
     msg:
-      #- "IPv4 REMOVE : {{ address_list_remove_output | default('') }}"
-      #- "IPv4 CREATE : {{ address_list_add_output | default('') }}"
+      - "REMOVE CUSTOM     : {{ firewall_custom_rules_remove_output | default('') }}"
+      - "REMOVE DEFAULT    : {{ firewall_default_rules_remove_output | default('') }}"
+      - "*** INBOUND ***"
+      - "ESTABLISH,RELATED : {{ firewall_established_related_inbound_output | default('') }}"
+      - "ALLOW ICMP        : {{ firewall_allow_icmp_inbound_output | default('') }}"
+      - "ADD FIREWALL RULES: {{ firewall_rules_add_inbound_output | default('') }}"
+      - "ALLOW ALL         : {{ firewall_allow_all_inbound_output | default('') }}"
+      - "DROP ALL          : {{ firewall_drop_all_inbound_output | default('') }}"
+      - "*** FORWARD ***"
+      - "ESTABLISH,RELATED : {{ firewall_established_related_forward_output | default('') }}"
+      - "ALLOW ICMP        : {{ firewall_allow_icmp_forward_output | default('') }}"
+      - "ADD FIREWALL RULES: {{ firewall_rules_add_forward_output | default('') }}"
+      - "ALLOW ALL         : {{ firewall_allow_all_forward_output | default('') }}"
+      - "DROP ALL          : {{ firewall_drop_all_forward_output | default('') }}"
+      - "*** OUTBOUND ***"
+      - "ESTABLISH,RELATED : {{ firewall_established_related_outbound_output | default('') }}"
+      - "ALLOW ICMP        : {{ firewall_allow_icmp_outbound_output | default('') }}"
+      - "ADD FIREWALL RULES: {{ firewall_rules_add_outbound_output | default('') }}"
+      - "ALLOW ALL         : {{ firewall_allow_all_outbound_output | default('') }}"
+      - "DROP ALL          : {{ firewall_drop_all_outbound_output | default('') }}"
   when:
     - routeros_show_output is true
   tags:

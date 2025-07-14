@@ -16,16 +16,6 @@
 #####
 
 ###
-### Pre requirements on host
-##############################
-
-#- name: "USERS > Install required packages on host machine"
-#  raw: sudo apt update -y && sudo apt install python3-scp -y
-#  when:
-#    #- ansible_os_family == 'Debian'
-#    - routeros_users is defined and routeros_users | length > 0
-
-###
 ### Group management
 ##############################
 
@@ -81,10 +71,6 @@
     - remove is true
     - routeros_groups is defined and routeros_groups | length > 0
 
-###
-### Show Groups Output
-##############################
-
 - name: "GROUPS > Show output"
   ansible.builtin.debug:
     msg:
@@ -121,6 +107,12 @@
     - hostname != "default"
     - hostname == ansible_net_hostname
     - routeros_users is defined and routeros_users | length > 0
+
+#- name: "USERS > Install required packages on host machine"
+#  raw: sudo apt update -y && sudo apt install python3-scp -y
+#  when:
+#    #- ansible_os_family == 'Debian'
+#    - routeros_users is defined and routeros_users | length > 0
 
 - name: "USERS > Add ssh keys on the device"
   ansible.netcommon.net_put:
@@ -207,36 +199,50 @@
 ### Firewall management
 ##############################
 
-- name: "USERS > Add firewall rules - Inbound"
+- name: "USERS > Add firewall rules"
   ansible.builtin.set_fact:
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src-address-list': 'Management', 'comment': 'Management users ~ Inbound'}] }}"
-  register: users_firewall_in_output
-  when:
-    - routeros_users is defined and routeros_users | length > 0
-
-- name: "USERS > Add firewall rules - Forward"
-  ansible.builtin.set_fact:
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'forward', 'src-address-list': 'Management', 'comment': 'Management users ~ Forward'}] }}"
-  register: users_firewall_fwd_output
-  when:
-    - routeros_users is defined and routeros_users | length > 0
-
-- name: "USERS > Add firewall rules - Outbound"
-  ansible.builtin.set_fact:
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'output', 'dst-address-list': 'Management', 'comment': 'Management users ~ Outbound'}] }}"
-  register: users_firewall_out_output
+    #routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'protocol': protocol, 'src_address_list': 'Management', 'comment': 'Management users ~ Inbound', 'enabled': true}] }}"
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'chain': chain, 'arguments': arguments, 'comment': 'Management users ~ ' + comment}] }}"
+  loop:
+    - {
+        "chain": "input",
+        "comment": "Inbound",
+        "arguments": ["action=accept", "src-address-list=Management"],
+      }
+    - {
+        "chain": "forward",
+        "comment": "Forward",
+        "arguments":
+          [
+            "action=accept",
+            "src-address-list=Management",
+            "dst-address-list=Management",
+          ],
+      }
+    - {
+        "chain": "output",
+        "comment": "Outbound",
+        "arguments": ["action=accept", "dst-address-list=Management"],
+      }
+  register: users_firewall_output
+  vars:
+    chain: "{{ item.chain }}"
+    comment: "{{ item.comment }}"
+    arguments: "{{ item.arguments }}"
   when:
     - routeros_users is defined and routeros_users | length > 0
 
 - name: "USERS > Add firewall address-list"
   ansible.builtin.set_fact:
-    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'Management', 'address': addresses, 'comment': 'Management user - ' + user + ' (' + comment + ')', 'disabled': disabled}] }}"
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'Management', 'address': addresses, 'comment': 'Management user - ' + user + ' (' + comment + ')', 'disabled': disabled, 'enabled': enabled}] }}"
+    #routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'Management', 'address': addresses, 'comment': 'Management user - ' + user + ' (' + comment + ')', 'enabled': enabled}] }}"
   loop: "{{ routeros_users_data | dict2items }}"
   vars:
-    user: "{{ item.key | community.routeros.quote_argument_value }}"
-    addresses: "{{ item.value.allowed_address | default([]) | join(',') | community.routeros.quote_argument_value }}"
-    disabled: "{{ item.value.disabled | default('yes') | community.routeros.quote_argument_value }}"
-    comment: "{{ item.value.comment | default('') | community.routeros.quote_argument_value }}"
+    user: "{{ item.key }}"
+    addresses: "{{ item.value.allowed_address | default([]) }}"
+    disabled: "{{ item.value.disabled | default('no') }}"
+    enabled: "{{ false if (item.value.disabled == 'yes') else true | default(true) }}"
+    comment: "{{ item.value.comment | default('') }}"
     remove: "{{ item.value.remove | default(false) }}"
   register: users_address_list_output
   when:
@@ -244,7 +250,7 @@
     - routeros_users is defined and routeros_users | length > 0
 
 ###
-### Show Users Output
+### Show Output
 ##############################
 
 - name: "USERS > Show output"
@@ -255,9 +261,7 @@
       - "SSHKEY ADD    : {{ sshkey_add_output | default('') }}"
       - "SSHKEY ENABLE : {{ sshkey_enable_output | default('') }}"
       - "SSHKEY REMOVE : {{ sshkey_remove_output | default('') }}"
-      - "FIREWALL IN   : {{ users_firewall_in_output | default('') }}"
-      - "FIREWALL FWD  : {{ users_firewall_fwd_output | default('') }}"
-      - "FIREWALL OUT  : {{ users_firewall_out_output | default('') }}"
+      - "FIREWALL      : {{ users_firewall_output | default('') }}"
       - "FIREWALL RULES: {{ routeros_firewall_rules | default('') }}"
       - "ADDRESS LIST  : {{ routeros_address_list | default('') }}"
   when:

@@ -34,6 +34,23 @@
     routeros_services_default_www_addresses: "{{ item.value.www.addresses | default([]) }}"
     routeros_services_default_wwwssl_enabled: "{{ item.value.wwwssl.enabled | default('no') }}"
     routeros_services_default_wwwssl_addresses: "{{ item.value.wwwssl.addresses | default([]) }}"
+    routeros_services_api_enabled: "{{ item.value.api.enabled | default('no') }}"
+    routeros_services_api_addresses: "{{ item.value.api.addresses | default([]) }}"
+    routeros_services_apissl_enabled: "{{ item.value.apissl.enabled | default('no') }}"
+    routeros_services_apissl_addresses: "{{ item.value.apissl.addresses | default([]) }}"
+    routeros_services_bwserver_enabled: "{{ item.value.bandwidthserver.enabled | default('no') }}"
+    routeros_services_ftp_enabled: "{{ item.value.ftp.enabled | default('no') }}"
+    routeros_services_ftp_addresses: "{{ item.value.ftp.addresses | default([]) }}"
+    routeros_services_ssh_enabled: "{{ item.value.ssh.enabled | default('yes') }}"
+    routeros_services_ssh_addresses: "{{ item.value.ssh.addresses | default([]) }}"
+    routeros_services_telnet_enabled: "{{ item.value.telnet.enabled | default('no') }}"
+    routeros_services_telnet_addresses: "{{ item.value.telnet.addresses | default([]) }}"
+    routeros_services_winbox_enabled: "{{ item.value.winbox.enabled | default('yes') }}"
+    routeros_services_winbox_addresses: "{{ item.value.winbox.addresses | default([]) }}"
+    routeros_services_www_enabled: "{{ item.value.www.enabled | default('no') }}"
+    routeros_services_www_addresses: "{{ item.value.www.addresses | default([]) }}"
+    routeros_services_wwwssl_enabled: "{{ item.value.wwwssl.enabled | default('no') }}"
+    routeros_services_wwwssl_addresses: "{{ item.value.wwwssl.addresses | default([]) }}"
   loop: "{{ routeros_services | dict2items }}"
   vars:
     hostname: "{{ item.key | default('') }}"
@@ -68,7 +85,6 @@
     - hostname == ansible_net_hostname
     - routeros_services is defined and routeros_services | length > 0
 
-### API Service
 - name: "SERVICES > Disable api service"
   community.routeros.command:
     commands:
@@ -90,16 +106,17 @@
 
 - name: "SERVICES > Add firewall rule for api service"
   ansible.builtin.set_fact:
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src-address-list': 'api', 'port': '8728', 'protocol': 'tcp', 'comment': 'API Service ~ Inbound'}] }}"
-    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'api', 'address': address, 'disabled': 'no', 'comment': 'API Service - Automatic added'}] }}"
+    #routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src_address_list': 'api', 'port': '8728', 'protocol': 'tcp', 'comment': 'API Service ~ Inbound', 'enabled': true}] }}"
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'type': 'ipv4', 'chain': 'input', 'arguments': ['action=accept', 'src-address-list=api', 'port=8728', 'protocol=tcp'], 'comment': 'API Service ~ Inbound'}] }}"
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'api', 'address': address, 'enabled': true, 'comment': 'API Service - Automatic added'}] }}"
   vars:
-    address: "{{ routeros_services_api_addresses | default(['0.0.0.0/0']) | join(',')  }}"
+    address: "{{ routeros_services_api_addresses | default(['0.0.0.0/0']) }}"
+    #address: "{{ routeros_services_api_addresses | default(['0.0.0.0/0']) | join(',') }}"
   register: routeros_service_api_fw_output
   when:
     - routeros_services_api_enabled is true
     - routeros_services is defined and routeros_services | length > 0
 
-### API-SSL Service
 - name: "SERVICES > Disable api-ssl service"
   community.routeros.command:
     commands:
@@ -121,16 +138,17 @@
 
 - name: "SERVICES > Add firewall rule for api-ssl service"
   ansible.builtin.set_fact:
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src-address-list': 'api-ssl', 'port': '8729', 'protocol': 'tcp', 'comment': 'API-SSL Service ~ Inbound'}] }}"
-    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'api-ssl', 'address': address, 'disabled': 'no', 'comment': 'API-SSL Service - Automatic added'}] }}"
+    #routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src_address_list': 'api-ssl', 'port': '8729', 'protocol': 'tcp', 'comment': 'API-SSL Service ~ Inbound', 'enabled': true}] }}"
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'type': 'ipv4', 'chain': 'input', 'arguments': ['action=accept', 'src-address-list=api-ssl', 'port=8729', 'protocol=tcp'], 'comment': 'API-SSL Service ~ Inbound'}] }}"
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'api-ssl', 'address': address, 'enabled': true, 'comment': 'API-SSL Service - Automatic added'}] }}"
   vars:
-    address: "{{ routeros_services_apissl_addresses | default(['0.0.0.0/0']) | join(',')  }}"
+    address: "{{ routeros_services_apissl_addresses | default(['0.0.0.0/0']) }}"
+    #address: "{{ routeros_services_apissl_addresses | default(['0.0.0.0/0']) | join(',') }}"
   register: routeros_service_apissl_fw_output
   when:
     - routeros_services_apissl_enabled is true
     - routeros_services is defined and routeros_services | length > 0
 
-### Bandwidth Test Server
 - name: "SERVICES > Disable bandwidth test server"
   community.routeros.command:
     commands:
@@ -149,7 +167,6 @@
     - routeros_services_bwserver_enabled is true
     - routeros_services is defined and routeros_services | length > 0
 
-### FTP Service
 - name: "SERVICES > Disable ftp service"
   community.routeros.command:
     commands:
@@ -171,16 +188,17 @@
 
 - name: "SERVICES > Add firewall rule for ftp service"
   ansible.builtin.set_fact:
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src-address-list': 'ftp', 'port': '21', 'protocol': 'tcp', 'comment': 'FTP Service ~ Inbound'}] }}"
-    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'ftp', 'address': address, 'disabled': 'no', 'comment': 'FTP Service - Automatic added'}] }}"
+    #routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src_address_list': 'ftp', 'port': '21', 'protocol': 'tcp', 'comment': 'FTP Service ~ Inbound', 'enabled': true}] }}"
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'type': 'ipv4', 'chain': 'input', 'arguments': ['action=accept', 'src-address-list=ftp', 'port=21', 'protocol=tcp'], 'comment': 'FTP Service ~ Inbound'}] }}"
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'ftp', 'address': address, 'enabled': true, 'comment': 'FTP Service - Automatic added'}] }}"
   vars:
-    address: "{{ routeros_services_ftp_addresses | default(['0.0.0.0/0']) | join(',')  }}"
+    address: "{{ routeros_services_ftp_addresses | default(['0.0.0.0/0']) }}"
+    #address: "{{ routeros_services_ftp_addresses | default(['0.0.0.0/0']) | join(',') }}"
   register: routeros_service_ftp_fw_output
   when:
     - routeros_services_ftp_enabled is true
     - routeros_services is defined and routeros_services | length > 0
 
-### SSH Service
 - name: "SERVICES > Disable ssh service"
   community.routeros.command:
     commands:
@@ -202,16 +220,17 @@
 
 - name: "SERVICES > Add firewall rule for ssh service"
   ansible.builtin.set_fact:
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src-address-list': 'ssh', 'port': '22', 'protocol': 'tcp', 'comment': 'SSH Service ~ Inbound'}] }}"
-    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'ssh', 'address': address, 'disabled': 'no', 'comment': 'Winbox Service - Automatic added'}] }}"
+    #routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src_address_list': 'ssh', 'port': '22', 'protocol': 'tcp', 'comment': 'SSH Service ~ Inbound', 'enabled': true}] }}"
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'type': 'ipv4', 'chain': 'input', 'arguments': ['action=accept', 'src-address-list=ssh', 'port=22', 'protocol=tcp'], 'comment': 'SSH Service ~ Inbound'}] }}"
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'ssh', 'address': address, 'enabled': true, 'comment': 'SSH Service - Automatic added'}] }}"
   vars:
-    address: "{{ routeros_services_ssh_addresses | default(['0.0.0.0/0']) | join(',')  }}"
+    address: "{{ routeros_services_ssh_addresses | default(['0.0.0.0/0']) }}"
+    #address: "{{ routeros_services_ssh_addresses | default(['0.0.0.0/0']) | join(',') }}"
   register: routeros_service_ssh_fw_output
   when:
     - routeros_services_ssh_enabled is true
     - routeros_services is defined and routeros_services | length > 0
 
-### Telnet Service
 - name: "SERVICES > Disable telnet service"
   community.routeros.command:
     commands:
@@ -233,16 +252,17 @@
 
 - name: "SERVICES > Add firewall rule for telnet service"
   ansible.builtin.set_fact:
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src-address-list': 'telnet', 'port': '23', 'protocol': 'tcp', 'comment': 'Telnet Service ~ Inbound'}] }}"
-    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'telnet', 'address': address, 'disabled': 'no', 'comment': 'Telnet Service - Automatic added'}] }}"
+    #routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src_address_list': 'telnet', 'port': '23', 'protocol': 'tcp', 'comment': 'Telnet Service ~ Inbound', 'enabled': true}] }}"
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'type': 'ipv4', 'chain': 'input', 'arguments': ['action=accept', 'src-address-list=telnet', 'port=23', 'protocol=tcp'], 'comment': 'Telnet Service ~ Inbound'}] }}"
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'telnet', 'address': address, 'enabled': true, 'comment': 'Telnet Service - Automatic added'}] }}"
   vars:
-    address: "{{ routeros_services_telnet_addresses | default(['0.0.0.0/0']) | join(',')  }}"
+    address: "{{ routeros_services_telnet_addresses | default(['0.0.0.0/0']) }}"
+    #address: "{{ routeros_services_telnet_addresses | default(['0.0.0.0/0']) | join(',') }}"
   register: routeros_service_telnet_fw_output
   when:
     - routeros_services_telnet_enabled is true
     - routeros_services is defined and routeros_services | length > 0
 
-### Winbox Service
 - name: "SERVICES > Disable winbox service"
   community.routeros.command:
     commands:
@@ -264,16 +284,17 @@
 
 - name: "SERVICES > Add firewall rule for winbox service"
   ansible.builtin.set_fact:
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src-address-list': 'winbox', 'port': '8291', 'protocol': 'tcp', 'comment': 'Winbox Service ~ Inbound'}] }}"
-    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'winbox', 'address': address, 'disabled': 'no', 'comment': 'Winbox Service - Automatic added'}] }}"
+    #routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src_address_list': 'winbox', 'port': '8291', 'protocol': 'tcp', 'comment': 'Winbox Service ~ Inbound', 'enabled': true}] }}"
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'type': 'ipv4', 'chain': 'input', 'arguments': ['action=accept', 'src-address-list=winbox', 'port=8291', 'protocol=tcp'], 'comment': 'Winbox Service ~ Inbound'}] }}"
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'winbox', 'address': address, 'enabled': true, 'comment': 'Winbox Service - Automatic added'}] }}"
   vars:
-    address: "{{ routeros_services_winbox_addresses | default(['0.0.0.0/0']) | join(',')  }}"
+    address: "{{ routeros_services_winbox_addresses | default(['0.0.0.0/0']) }}"
+    #address: "{{ routeros_services_winbox_addresses | default(['0.0.0.0/0']) | join(',') }}"
   register: routeros_service_winbox_fw_output
   when:
     - routeros_services_winbox_enabled is true
     - routeros_services is defined and routeros_services | length > 0
 
-### WWW Service
 - name: "SERVICES > Disable www service"
   community.routeros.command:
     commands:
@@ -295,16 +316,17 @@
 
 - name: "SERVICES > Add firewall rule for www service"
   ansible.builtin.set_fact:
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src-address-list': 'www', 'port': '80', 'protocol': 'tcp', 'comment': 'WWW Service ~ Inbound'}] }}"
-    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'www', 'address': address, 'disabled': 'no', 'comment': 'WWW Service - Automatic added'}] }}"
+    #routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src_address_list': 'www', 'port': '80', 'protocol': 'tcp', 'comment': 'WWW Service ~ Inbound', 'enabled': true}] }}"
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'type': 'ipv4', 'chain': 'input', 'arguments': ['action=accept', 'src-address-list=www', 'port=80', 'protocol=tcp'], 'comment': 'WWW Service ~ Inbound'}] }}"
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'www', 'address': address, 'enabled': true, 'comment': 'WWW Service - Automatic added'}] }}"
   vars:
-    address: "{{ routeros_services_www_addresses | default(['0.0.0.0/0']) | join(',')  }}"
+    address: "{{ routeros_services_www_addresses | default(['0.0.0.0/0']) }}"
+    #address: "{{ routeros_services_www_addresses | default(['0.0.0.0/0']) | join(',') }}"
   register: routeros_service_www_fw_output
   when:
     - routeros_services_www_enabled is true
     - routeros_services is defined and routeros_services | length > 0
 
-### WWW-SSL Service
 - name: "SERVICES > Disable www-ssl service"
   community.routeros.command:
     commands:
@@ -326,16 +348,17 @@
 
 - name: "SERVICES > Add firewall rule for www-ssl service"
   ansible.builtin.set_fact:
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src-address-list': 'www-ssl', 'port': '443', 'protocol': 'tcp', 'comment': 'WWW-SSL Service ~ Inbound'}] }}"
-    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'www-ssl', 'address': address, 'disabled': 'no', 'comment': 'WWW-SSL Service - Automatic added'}] }}"
+    #routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'src_address_list': 'www-ssl', 'port': '443', 'protocol': 'tcp', 'comment': 'WWW-SSL Service ~ Inbound', 'enabled': true}] }}"
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'type': 'ipv4', 'chain': 'input', 'arguments': ['action=accept', 'src-address-list=www-ssl', 'port=443', 'protocol=tcp'], 'comment': 'WWW-SSL Service ~ Inbound'}] }}"
+    routeros_address_list: "{{ routeros_address_list | default([]) + [{'list': 'www-ssl', 'address': address, 'enabled': true, 'comment': 'WWW-SSL Service - Automatic added'}] }}"
   vars:
-    address: "{{ routeros_services_wwwssl_addresses | default(['0.0.0.0/0']) | join(',')  }}"
+    address: "{{ routeros_services_wwwssl_addresses | default(['0.0.0.0/0']) }}"
+    #address: "{{ routeros_services_wwwssl_addresses | default(['0.0.0.0/0']) | join(',') }}"
   register: routeros_service_wwwssl_fw_output
   when:
     - routeros_services_wwwssl_enabled is true
     - routeros_services is defined and routeros_services | length > 0
 
-### Show Output
 - name: "SERVICES > Show output"
   ansible.builtin.debug:
     msg:

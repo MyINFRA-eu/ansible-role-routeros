@@ -24,3 +24,8 @@
   ansible.builtin.import_tasks: firewall_rules_ipv4.yml
   tags:
     - routeros_firewall_rules_ipv4
+
+- name: "Load: Firewall (IPv6) tasks"
+  ansible.builtin.import_tasks: firewall_rules_ipv6.yml
+  tags:
+    - routeros_firewall_rules_ipv6
