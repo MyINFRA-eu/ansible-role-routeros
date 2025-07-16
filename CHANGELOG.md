@@ -2,6 +2,17 @@
 
 All notable changes to ansible-role-routeros will be documented in this file.
 
+# 2025.07-003 - 16/07/2025
+
+## What's Changed
+
+- Updates & bugfixes
+
+**Full Changelog**: https://github.com/MyINFRA-eu/ansible-role-routeros/compare/2025.07-002...2025.07-003
+
+### New Contributors
+- none
+
 
 # 2025.07-002 - 16/07/2025
 
