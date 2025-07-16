@@ -3,6 +3,7 @@ dependencies: []
 
 galaxy_info:
   role_name: "routeros"
+  namespace: "myinfra_eu"
   author: "Dennis-de-Houx"
   description: "Ansible role for RouteOS (mikrotik devices)."
   company: "All In One - MyINFRA.eu"
