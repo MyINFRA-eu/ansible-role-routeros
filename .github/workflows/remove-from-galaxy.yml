@@ -6,6 +6,7 @@
 # See: https://github.com/ansible/galaxy/issues/46
 
 name: Remove from Ansible Galaxy
+"on": workflow_dispatch
 
 defaults:
   run:
