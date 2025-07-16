@@ -8,6 +8,11 @@ rules:
   line-length:
     max: 160
     level: warning
+  indentation:
+    spaces: consistent
+    indent-sequences: false
+    check-multi-line-strings: false
+    level: warning
 
 ignore: |
   .github/workflows/stale.yml
