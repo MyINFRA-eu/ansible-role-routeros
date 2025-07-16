@@ -2,7 +2,7 @@
 #####
 #
 # @name MyINFRA.eu ~ Ansible RouterOS Role
-# @version 2025.07-001
+# @version 2025.07-003
 # @since 2025.07-000.beta1
 #
 # @copyright (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code
@@ -202,7 +202,7 @@
 - name: "USERS > Add firewall rules"
   ansible.builtin.set_fact:
     #routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'action': 'accept', 'chain': 'input', 'protocol': protocol, 'src_address_list': 'Management', 'comment': 'Management users ~ Inbound', 'enabled': true}] }}"
-    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'chain': chain, 'arguments': arguments, 'comment': 'Management users ~ ' + comment}] }}"
+    routeros_firewall_rules: "{{ routeros_firewall_rules | default([]) + [{'type': 'ipv4', 'chain': chain, 'arguments': arguments, 'comment': 'Management users ~ ' + comment}] }}"
   loop:
     - {
         "chain": "input",
@@ -212,12 +212,12 @@
     - {
         "chain": "forward",
         "comment": "Forward",
-        "arguments":
-          [
-            "action=accept",
-            "src-address-list=Management",
-            "dst-address-list=Management",
-          ],
+        "arguments": ["action=accept", "src-address-list=Management"],
+      }
+    - {
+        "chain": "forward",
+        "comment": "Forward",
+        "arguments": ["action=accept", "dst-address-list=Management"],
       }
     - {
         "chain": "output",
