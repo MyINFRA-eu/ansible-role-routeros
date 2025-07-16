@@ -52,9 +52,9 @@ We highly appreciate you mentioning us or our projects on you website, social me
 
 **Ansible Galaxy**
 
-![Ansible Collection Version](https://img.shields.io/ansible/collection/v/MyINFRA-eu/ansible-role-routeros?style=flat)
-![Ansible Collection Downloads](https://img.shields.io/ansible/collection/d/MyINFRA-eu/ansible-role-routeros?style=flat)
-![Ansible Role](https://img.shields.io/ansible/role/d/MyINFRA-eu/ansible-role-routeros?style=flat)
+![Ansible Collection Version](https://img.shields.io/ansible/collection/v/myinfra_eu/ansible-role-routeros?style=flat)
+![Ansible Collection Downloads](https://img.shields.io/ansible/collection/d/myinfra_eu/ansible-role-routeros?style=flat)
+![Ansible Role](https://img.shields.io/ansible/role/d/myinfra_eu/ansible-role-routeros?style=flat)
 
 **Owner**
 
