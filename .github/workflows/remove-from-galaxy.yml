@@ -8,9 +8,9 @@
 name: Remove from Ansible Galaxy
 "on": workflow_dispatch
 
-defaults:
-  run:
-    working-directory: "myinfra_eu.routeros"
+#defaults:
+#  run:
+#    working-directory: "myinfra_eu.routeros"
 
 jobs:
   release:
