@@ -2,7 +2,7 @@
 #####
 #
 # @name MyINFRA.eu ~ Ansible RouterOS Role
-# @version 2025.07-000.beta1
+# @version 2025.07-001
 # @since 2025.07-000.beta1
 #
 # @copyright (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code
@@ -15,7 +15,7 @@
 #
 #####
 
-- name: "Banner > Disable"
+- name: "BANNER > Disable"
   community.routeros.command:
     commands:
       - /system/note set show-at-login=no
@@ -24,7 +24,7 @@
   when:
     - routeros_banner is undefined or (routeros_banner is defined and routeros_banner | length < 1)
 
-- name: "Banner > Enable & update content"
+- name: "BANNER > Enable & update content"
   community.routeros.command:
     commands:
       - /system/note set show-at-login=yes
@@ -34,7 +34,7 @@
   when:
     - routeros_banner is defined and routeros_banner | length > 0
 
-- name: "Banner > Show output"
+- name: "BANNER > Show output"
   ansible.builtin.debug:
     msg:
       - "DISABALED: {{ banner_disabled_output }}"

@@ -2,7 +2,7 @@
 #####
 #
 # @name MyINFRA.eu ~ Ansible RouterOS Role
-# @version 2025.07-000.beta1
+# @version 2025.07-001
 # @since 2025.07-000.beta1
 #
 # @copyright (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code
@@ -11,7 +11,7 @@
 #
 ###
 #
-# Ansible role for <description>
+# Ansible role for RouterOS
 #
 #####
 
@@ -19,7 +19,7 @@
   ansible.builtin.debug:
     msg:
       - "MyINFRA.eu ~ Ansible RouterOS Role"
-      - "Version   : 2025.07-000.beta1"
+      - "Version   : 2025.07-001"
       - "Copyright : (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code"
       - "Author    : Dennis de Houx <dennis@dehoux.be>"
       - "License   : https://creativecommons.org/licenses/by-nc-nd/4.0/deed.en CC BY-NC-ND 4.0"
