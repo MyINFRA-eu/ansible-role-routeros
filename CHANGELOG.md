@@ -3,6 +3,18 @@
 All notable changes to ansible-role-routeros will be documented in this file.
 
 
+# 2025.07-002 - 16/07/2025
+
+## What's Changed
+
+- (bugfix) Enable firewall include
+
+**Full Changelog**: https://github.com/MyINFRA-eu/ansible-role-routeros/compare/2025.07-001...2025.07-002
+
+### New Contributors
+- none
+
+
 # 2025.07-001 - 16/07/2025
 
 ## What's Changed
