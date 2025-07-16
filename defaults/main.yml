@@ -17,4 +17,6 @@
 
 ### Show output from run command
 routeros_show_output: false
-routeros_ansible_comment: "\n\n!!! This is auto created and managed by ansible !!!"
+
+### Suffix comment
+routeros_ansible_comment: "\n\n!!! This is automatically created and managed by ansible !!!"
