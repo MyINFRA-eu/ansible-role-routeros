@@ -65,6 +65,11 @@
   tags:
     - routeros_custom_commands
 
+- name: "Load: Firewall tasks"
+  ansible.builtin.import_tasks: firewall.yml
+  tags:
+    - routeros_firewall
+
 - name: "Release Safe Mode"
   community.routeros.command:
     commands:
