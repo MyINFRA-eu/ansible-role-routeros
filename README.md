@@ -5,7 +5,7 @@
 
 ## About
 
-Ansible role for RouteOS (mikrotik devices), with this role you are able to configure and control the following:
+Ansible role for RouterOS (mikrotik devices), with this role you are able to configure and control the following:
 
 - Gather information
 - Set note (Login Banner)
@@ -91,7 +91,7 @@ None.
   vars_files:
     - vars/main.yml
   roles:
-    - { role: MyINFRA-eu.routeros }
+    - { role: myinfra_eu.routeros }
 ```
 
 
