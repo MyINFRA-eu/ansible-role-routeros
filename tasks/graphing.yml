@@ -1,0 +1,172 @@
+---
+#####
+#
+# @name MyINFRA.eu ~ Ansible RouteOS Role
+# @version 2025.07-001
+# @since 2025.07-000.beta1
+#
+# @copyright (c) 2025 (and beyond) - Dennis de Houx, All In One, One For The code
+# @author Dennis de Houx <dennis@dehoux.be>
+# @license https://creativecommons.org/licenses/by-nc-nd/4.0/deed.en CC BY-NC-ND 4.0
+#
+###
+#
+# Ansible role to manage graphing setting.
+#
+#####
+
+- name: "GRAPHING > Disable"
+  community.routeros.command:
+    commands:
+      - /tool/graphing/interface remove [find]
+      - /tool/graphing/queue remove [find]
+      - /tool/graphing/resource remove [find]
+  register: routeros_graphing_output
+  when:
+    - routeros_graphing is undefined
+
+- name: "GRAPHING > Load default settings"
+  ansible.builtin.set_fact:
+    routeros_graphing_default_interface_interface: "{{ item.value.interface.interface | default(['all']) }}"
+    routeros_graphing_default_interface_addresses: "{{ item.value.interface.address | default('0.0.0.0/0') }}"
+    routeros_graphing_default_interface_disk: "{{ item.value.interface.ondisk | default('yes') }}"
+    routeros_graphing_default_interface_disabled: "{{ item.value.interface.disabled | default('no') }}"
+    routeros_graphing_default_queue_queue: "{{ item.value.queue.queue | default(['all']) }}"
+    routeros_graphing_default_queue_addresses: "{{ item.value.queue.address | default('0.0.0.0/0') }}"
+    routeros_graphing_default_queue_disk: "{{ item.value.queue.ondisk | default('yes') }}"
+    routeros_graphing_default_queue_target: "{{ item.value.queue.target | default('yes') }}"
+    routeros_graphing_default_queue_disabled: "{{ item.value.queue.disabled | default('no') }}"
+    routeros_graphing_default_resource_addresses: "{{ item.value.resource.address | default('0.0.0.0/0') }}"
+    routeros_graphing_default_resource_disk: "{{ item.value.resource.ondisk | default('yes') }}"
+    routeros_graphing_default_resource_disabled: "{{ item.value.resource.disabled | default('no') }}"
+    routeros_graphing_interface_interface: "{{ item.value.interface.interface | default(['all']) }}"
+    routeros_graphing_interface_addresses: "{{ item.value.interface.address | default('0.0.0.0/0') }}"
+    routeros_graphing_interface_disk: "{{ item.value.interface.ondisk | default('yes') }}"
+    routeros_graphing_interface_disabled: "{{ item.value.interface.disabled | default('no') }}"
+    routeros_graphing_queue_queue: "{{ item.value.queue.queue | default(['all']) }}"
+    routeros_graphing_queue_addresses: "{{ item.value.queue.address | default('0.0.0.0/0') }}"
+    routeros_graphing_queue_disk: "{{ item.value.queue.ondisk | default('yes') }}"
+    routeros_graphing_queue_target: "{{ item.value.queue.target | default('yes') }}"
+    routeros_graphing_queue_disabled: "{{ item.value.queue.disabled | default('no') }}"
+    routeros_graphing_resource_addresses: "{{ item.value.resource.address | default('0.0.0.0/0') }}"
+    routeros_graphing_resource_disk: "{{ item.value.resource.ondisk | default('yes') }}"
+    routeros_graphing_resource_disabled: "{{ item.value.resource.disabled | default('no') }}"
+  loop: "{{ routeros_graphing | dict2items }}"
+  vars:
+    hostname: "{{ item.key | default('') }}"
+  when:
+    - hostname == "default"
+    - routeros_graphing is defined and routeros_graphing | length > 0
+
+- name: "GRAPHING > Load device settings"
+  ansible.builtin.set_fact:
+    routeros_graphing_interface_interface: "{{ item.value.interface.interface | default(routeros_graphing_default_interface_interface) }}"
+    routeros_graphing_interface_addresses: "{{ item.value.interface.address | default(routeros_graphing_default_interface_addresses) }}"
+    routeros_graphing_interface_disk: "{{ item.value.interface.ondisk | default(routeros_graphing_default_interface_disk) }}"
+    routeros_graphing_interface_disabled: "{{ item.value.interface.disabled | default(routeros_graphing_default_interface_disabled) }}"
+    routeros_graphing_queue_queue: "{{ item.value.queue.queue | default(routeros_graphing_default_queue_queue) }}"
+    routeros_graphing_queue_addresses: "{{ item.value.queue.address | default(routeros_graphing_default_queue_addresses) }}"
+    routeros_graphing_queue_disk: "{{ item.value.queue.ondisk | default(routeros_graphing_default_queue_disk) }}"
+    routeros_graphing_queue_target: "{{ item.value.queue.target | default(routeros_graphing_default_queue_target) }}"
+    routeros_graphing_queue_disabled: "{{ item.value.queue.disabled | default(routeros_graphing_default_queue_disabled) }}"
+    routeros_graphing_resource_addresses: "{{ item.value.resource.addresses | default(routeros_graphing_default_resource_addresses) }}"
+    routeros_graphing_resource_disk: "{{ item.value.resource.ondisk | default(routeros_graphing_default_resource_disk) }}"
+    routeros_graphing_resource_disabled: "{{ item.value.resource.disabled | default(routeros_graphing_default_resource_disabled) }}"
+  loop: "{{ routeros_graphing | dict2items }}"
+  vars:
+    hostname: "{{ item.key | default('default') }}"
+  when:
+    - hostname != "default"
+    - hostname == ansible_net_hostname
+    - routeros_graphing is defined and routeros_graphing | length > 0
+
+- name: "GRAPHING > Clear grahping settings"
+  community.routeros.command:
+    commands:
+      - /tool/graphing/interface remove [find]
+      - /tool/graphing/queue remove [find]
+      - /tool/graphing/resource remove [find]
+  register: routeros_graphing_output
+  when:
+    - routeros_graphing is defined and routeros_graphing | length > 0
+
+#- name: "GRAPHING > Configure grahping settings"
+#  community.routeros.command:
+#    commands:
+#      - /tool/graphing/interface remove [find]
+#      - /tool/graphing/interface add interface={{ interface_interface }} allow-address={{ interface_address }} store-on-disk={{ 'yes' if interface_disk else 'no' }} disabled={{ 'yes' if interface_disabled else 'no' }}
+#      - /tool/graphing/queue remove [find]
+#      - /tool/graphing/queue add simple-queue={{ queue_queue }} allow-address={{ queue_address }} store-on-disk={{ 'yes' if queue_disk else 'no' }} allow-target={{ 'yes' if queue_target else 'no' }} disabled={{ 'yes' if queue_disabled else 'no' }}
+#      - /tool/graphing/resource remove [find]
+#      - /tool/graphing/resource add allow-address={{ resource_address }} store-on-disk={{ 'yes' if resource_disk else 'no' }} disabled={{ 'yes' if resource_disabled else 'no' }}
+#  vars:
+#    interface_interface: "{{ routeros_graphing_interface_interface | default(routeros_graphing_default_interface_interface) | join(',') | community.routeros.quote_argument_value }}"
+#    interface_address: "{{ routeros_graphing_interface_addresses | default(routeros_graphing_default_interface_addresses) | community.routeros.quote_argument_value }}"
+#    interface_disk: "{{ routeros_graphing_interface_disk | default(routeros_graphing_default_interface_disk) | community.routeros.quote_argument_value }}"
+#    interface_disabled: "{{ routeros_graphing_interface_disabled | default(routeros_graphing_default_interface_disabled) | community.routeros.quote_argument_value }}"
+#    queue_queue: "{{ routeros_graphing_queue_queue | default(routeros_graphing_default_queue_queue) | join(',') | community.routeros.quote_argument_value }}"
+#    queue_address: "{{ routeros_graphing_queue_addresses | default(routeros_graphing_default_queue_addresses) | community.routeros.quote_argument_value }}"
+#    queue_disk: "{{ routeros_graphing_queue_disk | default(routeros_graphing_default_queue_disk) | community.routeros.quote_argument_value }}"
+#    queue_target: "{{ routeros_graphing_queue_target | default(routeros_graphing_default_queue_target) | community.routeros.quote_argument_value }}"
+#    queue_disabled: "{{ routeros_graphing_queue_disabled | default(routeros_graphing_default_queue_disabled) | community.routeros.quote_argument_value }}"
+#    resource_address: "{{ routeros_graphing_resource_addresses | default(routeros_graphing_default_resource_addresses) | community.routeros.quote_argument_value }}"
+#    resource_disk: "{{ routeros_graphing_resource_disk | default(routeros_graphing_default_resource_disk) | community.routeros.quote_argument_value }}"
+#    resource_disabled: "{{ routeros_graphing_resource_disabled | default(routeros_graphing_default_resource_disabled) | community.routeros.quote_argument_value }}"
+#  register: routeros_graphing_output
+#  when:
+#    - routeros_graphing is defined and routeros_graphing | length > 0
+
+- name: "GRAPHING > Configure interface grahping settings"
+  community.routeros.command:
+    commands:
+      #- /tool/graphing/interface remove [find]
+      - /tool/graphing/interface add interface={{ interface }} allow-address={{ interface_address }} store-on-disk={{ 'yes' if interface_disk else 'no' }} disabled={{ 'yes' if interface_disabled else 'no' }}
+  loop: "{{ routeros_graphing_interface_interface }}"
+  vars:
+    interface: "{{ item | default('all') | community.routeros.quote_argument_value }}"
+    #interface_interface: "{{ routeros_graphing_interface_interface | default(routeros_graphing_default_interface_interface) | join(',') | community.routeros.quote_argument_value }}"
+    interface_address: "{{ routeros_graphing_interface_addresses | default(routeros_graphing_default_interface_addresses) | community.routeros.quote_argument_value }}"
+    interface_disk: "{{ routeros_graphing_interface_disk | default(routeros_graphing_default_interface_disk) | community.routeros.quote_argument_value }}"
+    interface_disabled: "{{ routeros_graphing_interface_disabled | default(routeros_graphing_default_interface_disabled) | community.routeros.quote_argument_value }}"
+  register: routeros_graphing_output
+  when:
+    - routeros_graphing is defined and routeros_graphing | length > 0
+
+- name: "GRAPHING > Configure queue grahping settings"
+  community.routeros.command:
+    commands:
+      #- /tool/graphing/queue remove [find]
+      - /tool/graphing/queue add simple-queue={{ queue }} allow-address={{ queue_address }} store-on-disk={{ 'yes' if queue_disk else 'no' }} allow-target={{ 'yes' if queue_target else 'no' }} disabled={{ 'yes' if queue_disabled else 'no' }}
+  loop: "{{ routeros_graphing_queue_queue }}"
+  vars:
+    queue: "{{ item | default('all') | community.routeros.quote_argument_value }}"
+    #queue_queue: "{{ routeros_graphing_queue_queue | default(routeros_graphing_default_queue_queue) | join(',') | community.routeros.quote_argument_value }}"
+    queue_address: "{{ routeros_graphing_queue_addresses | default(routeros_graphing_default_queue_addresses) | community.routeros.quote_argument_value }}"
+    queue_disk: "{{ routeros_graphing_queue_disk | default(routeros_graphing_default_queue_disk) | community.routeros.quote_argument_value }}"
+    queue_target: "{{ routeros_graphing_queue_target | default(routeros_graphing_default_queue_target) | community.routeros.quote_argument_value }}"
+    queue_disabled: "{{ routeros_graphing_queue_disabled | default(routeros_graphing_default_queue_disabled) | community.routeros.quote_argument_value }}"
+  register: routeros_graphing_output
+  when:
+    - routeros_graphing is defined and routeros_graphing | length > 0
+
+- name: "GRAPHING > Configure resource grahping settings"
+  community.routeros.command:
+    commands:
+      #- /tool/graphing/resource remove [find]
+      - /tool/graphing/resource add allow-address={{ resource_address }} store-on-disk={{ 'yes' if resource_disk else 'no' }} disabled={{ 'yes' if resource_disabled else 'no' }}
+  vars:
+    resource_address: "{{ routeros_graphing_resource_addresses | default(routeros_graphing_default_resource_addresses) | community.routeros.quote_argument_value }}"
+    resource_disk: "{{ routeros_graphing_resource_disk | default(routeros_graphing_default_resource_disk) | community.routeros.quote_argument_value }}"
+    resource_disabled: "{{ routeros_graphing_resource_disabled | default(routeros_graphing_default_resource_disabled) | community.routeros.quote_argument_value }}"
+  register: routeros_graphing_output
+  when:
+    - routeros_graphing is defined and routeros_graphing | length > 0
+
+- name: "GRAPHING > Show output"
+  ansible.builtin.debug:
+    msg:
+      - "GRAPHING : {{ routeros_graphing_output }}"
+  when:
+    - routeros_show_output is true
+  tags:
+    - routeros_show_output
